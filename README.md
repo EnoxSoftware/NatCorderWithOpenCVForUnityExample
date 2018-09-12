@@ -8,9 +8,9 @@
 * Anddroid (Pixel, Nexus 7, Zenfone, SC-04E) / iOS (iPhone8, iPhone6)
 * Unity >= 5.6.1f1
 * Scripting backend MONO / IL2CPP
-* NatCorder - Video Recording API1.2f2 ([https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645))  
-* NatShare - Mobile Sharing API 1.0f3 ([https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705))  
-* OpenCV for Unity 2.2.9 ([https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088))  
+* NatCorder - Video Recording API1.3f1 ([https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645))  
+* NatShare - Mobile Sharing API 1.1f1 ([https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705))  
+* OpenCV for Unity 2.3.1 ([https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088))  
 
 
 Demo

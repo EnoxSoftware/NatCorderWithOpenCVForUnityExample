@@ -5,6 +5,7 @@ using System;
 using NatCorderU.Core;
 using NatShareU;
 using UnityEngine.Video;
+using NatCorderU.Core.Recorders;
 
 #if UNITY_5_3 || UNITY_5_3_OR_NEWER
 using UnityEngine.SceneManagement;
@@ -30,6 +31,16 @@ namespace NatCorderWithOpenCVForUnityExample
         public ResolutionPreset requestedResolution = ResolutionPreset._640x480;
 
         [Space(20)]
+
+        /// <summary>
+        /// The type of container.
+        /// </summary>
+        public Container container = Container.MP4;
+
+        /// <summary>
+        /// The container dropdown.
+        /// </summary>
+        public Dropdown containerDropdown;
 
         /// <summary>
         /// Determines if applies the comic filter.
@@ -93,12 +104,9 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         WebCamTextureToMatHelper webCamTextureToMatHelper;
 
-        AudioSource audioSource;
+        AudioSource microphoneSource;
 
         AudioRecorder audioRecorder;
-
-        long timestamp = 0;
-        long lastTime = -1;
 
         const float MAX_RECORDING_TIME = 10f; // Seconds
 
@@ -145,7 +153,7 @@ namespace NatCorderWithOpenCVForUnityExample
             webCamTextureToMatHelper.Initialize ();
             #endif
 
-            audioSource = gameObject.GetComponent<AudioSource> ();
+            microphoneSource = gameObject.GetComponent<AudioSource> ();
 
             videoPlayer = gameObject.GetComponent<VideoPlayer> ();
 
@@ -153,6 +161,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
             // Update GUI state
             requestedResolutionDropdown.value = (int)requestedResolution;
+            containerDropdown.value = (int)container - 1;
             applyComicFilterToggle.isOn = applyComicFilter;
             recordMicrophoneAudioToggle.isOn = recordMicrophoneAudio;
         }
@@ -241,13 +250,8 @@ namespace NatCorderWithOpenCVForUnityExample
 
 				if (NatCorder.IsRecording)
                 {					
-					// Calculate time
-					var frameTime = Frame.CurrentTimestamp;
-					timestamp += lastTime > 0 ? frameTime - lastTime : 0;
-					lastTime = frameTime;
 					// Blit to recording frame
 					var encoderFrame = NatCorder.AcquireFrame();
-					encoderFrame.timestamp = timestamp;
 				    Graphics.Blit(texture, encoderFrame);
                     NatCorder.CommitFrame (encoderFrame);
 				}
@@ -257,7 +261,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 gameObject.GetComponent<Renderer> ().sharedMaterial.mainTexture = videoPlayer.texture;
             }
         }
-            
+
         private void StartRecording ()
         {
             if (isVideoPlaying || NatCorder.IsRecording)
@@ -268,20 +272,21 @@ namespace NatCorderWithOpenCVForUnityExample
                 fpsMonitor.consoleText = "Recording";
             }   
 
-			timestamp = 0;
-			lastTime = -1;
-
+            // First make sure recording microphone is only on MP4
+            recordMicrophoneAudio &= container == Container.MP4;
+            // Create recording configurations
             int recordingWidth = webCamTextureToMatHelper.GetWidth ();
             int recordingHeight = webCamTextureToMatHelper.GetHeight ();
-            var configuration = new Configuration(recordingWidth, recordingHeight);
+            var framerate = container == Container.GIF ? 10 : 30;
+            var videoFormat = new VideoFormat(recordingWidth, recordingHeight, framerate);
+            var audioFormat = recordMicrophoneAudio ? AudioFormat.Unity: AudioFormat.None;
             // Start recording
+            NatCorder.StartRecording(container, videoFormat, audioFormat, OnVideo);
+
+            // Start microphone and create audio recorder
             if (recordMicrophoneAudio) {
-                StartMicrophone ();
-                audioRecorder = audioSource.gameObject.AddComponent<AudioRecorder> ();
-                audioRecorder.mute = true;
-                NatCorder.StartRecording (configuration, OnVideo, audioRecorder);
-            } else {
-                NatCorder.StartRecording (configuration, OnVideo);
+                StartMicrophone();
+                audioRecorder = AudioRecorder.Create(microphoneSource, true);
             }
 
             StartCoroutine ("Countdown");
@@ -295,14 +300,14 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             #if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
             // If the clip has not been set, set it now
-            if (audioSource.clip == null) {
-            audioSource.clip = Microphone.Start(null, true, 60, 48000);
-            while (Microphone.GetPosition(null) <= 0) ;
+            if (microphoneSource.clip == null) {
+                microphoneSource.clip = Microphone.Start(null, true, 60, 48000);
+                while (Microphone.GetPosition(null) <= 0) ;
             }            
             // Play through audio source
-            audioSource.timeSamples = Microphone.GetPosition(null);
-            audioSource.loop = true;
-            audioSource.Play();
+            microphoneSource.timeSamples = Microphone.GetPosition(null);
+            microphoneSource.loop = true;
+            microphoneSource.Play();
             #endif
         }
 
@@ -316,8 +321,13 @@ namespace NatCorderWithOpenCVForUnityExample
                 fpsMonitor.consoleText = "";
             }    
 
-            // Stop recording
-            if (recordMicrophoneAudio) audioSource.Stop();
+            // Stop the microphone if we used it for recording
+            if (recordMicrophoneAudio) {
+                Microphone.End(null);
+                microphoneSource.Stop();
+                audioRecorder.Dispose();
+            }
+            // Stop the recording
             NatCorder.StopRecording();
 
             StopCoroutine ("Countdown");
@@ -362,7 +372,7 @@ namespace NatCorderWithOpenCVForUnityExample
             videoPlayer.renderMode = VideoRenderMode.APIOnly;
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = false;
-            audioSource.playOnAwake = false;
+            microphoneSource.playOnAwake = false;
 
             videoPlayer.source = VideoSource.Url;
             videoPlayer.url = path;
@@ -370,7 +380,7 @@ namespace NatCorderWithOpenCVForUnityExample
             videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
             videoPlayer.controlledAudioTrackCount = 1;
             videoPlayer.EnableAudioTrack(0, true);
-            videoPlayer.SetTargetAudioSource(0, audioSource);
+            videoPlayer.SetTargetAudioSource(0, microphoneSource);
 
             videoPlayer.prepareCompleted += PrepareCompleted;
             videoPlayer.loopPointReached += EndReached;
@@ -421,6 +431,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void ShowAllVideoUI ()
         {
+            containerDropdown.interactable = true;
             applyComicFilterToggle.interactable = true;
             recordMicrophoneAudioToggle.interactable = true;
             recordVideoButton.interactable = true;
@@ -433,6 +444,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void HideAllVideoUI ()
         {
+            containerDropdown.interactable = false;
             applyComicFilterToggle.interactable = false;
             recordMicrophoneAudioToggle.interactable = false;
             recordVideoButton.interactable = false;
@@ -523,6 +535,17 @@ namespace NatCorderWithOpenCVForUnityExample
         }
 
         /// <summary>
+        /// Raises the container dropdown value changed event.
+        /// </summary>
+        public void OnContainerDropdownValueChanged (int result)
+        {
+            Debug.Log (result);
+            if ((int)container != result + 1) {
+                container = (Container)(result + 1);
+            }
+        }
+
+        /// <summary>
         /// Raises the apply comic filter toggle value changed event.
         /// </summary>
         public void OnApplyComicFilterToggleValueChanged ()
@@ -569,6 +592,11 @@ namespace NatCorderWithOpenCVForUnityExample
             if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
                 return;
 
+            if (System.IO.Path.GetExtension (videoPath) == ".gif") {                
+                Debug.LogWarning ("GIF format video playback is not supported.");
+                return;
+            }
+
             // Playback the video
             #if UNITY_IOS
             PlayVideo ("file://" + videoPath);
@@ -588,9 +616,9 @@ namespace NatCorderWithOpenCVForUnityExample
                 return;
 
             // Playback the video
-            #if UNITY_IOS
+            #if UNITY_IOS && !UNITY_EDITOR
             Handheld.PlayFullScreenMovie("file://" + videoPath);
-            #elif UNITY_ANDROID
+            #elif UNITY_ANDROID && !UNITY_EDITOR
             Handheld.PlayFullScreenMovie(videoPath);
             #else
             Debug.LogWarning ("Full-screen video playback is not supported on this platform.");
@@ -607,7 +635,7 @@ namespace NatCorderWithOpenCVForUnityExample
             if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
                 return;
             
-            NatShare.Share (videoPath);
+            NatShare.ShareMedia (videoPath, "PATH:" + videoPath);
         }
 
         /// <summary>
@@ -640,38 +668,6 @@ namespace NatCorderWithOpenCVForUnityExample
             case ResolutionPreset._1920x1080: width = 1920; height = 1080; break;
             case ResolutionPreset._9999x9999: width = 9999; height = 9999; break;
             default: width = height = 0; break;
-            }
-        }
-
-
-        [AddComponentMenu(""), DisallowMultipleComponent]
-        private sealed class AudioRecorder : MonoBehaviour, IAudioSource {
-
-            int IAudioSource.sampleRate { get { return AudioSettings.outputSampleRate; }}
-            int IAudioSource.sampleCount {
-                get {
-                    int sampleCount, bufferCount;
-                    AudioSettings.GetDSPBufferSize(out sampleCount, out bufferCount);
-                    return sampleCount;
-                }
-            }
-            int IAudioSource.channelCount { get { return (int)AudioSettings.speakerMode; }}
-
-            public bool mute;
-            private long timestamp, lastTime = -1; // Used to support pausing and resuming
-
-            void OnAudioFilterRead (float[] data, int channels) {
-                // Calculate time
-                var audioTime = Frame.CurrentTimestamp;
-                timestamp += lastTime > 0 ? audioTime - lastTime : 0;
-                lastTime = audioTime;
-                // Send to NatCorder for encoding
-                NatCorder.CommitSamples(data, timestamp);
-                if (mute) Array.Clear(data, 0, data.Length);
-            }
-
-            void IDisposable.Dispose () {
-                Destroy(this);
             }
         }
     }
