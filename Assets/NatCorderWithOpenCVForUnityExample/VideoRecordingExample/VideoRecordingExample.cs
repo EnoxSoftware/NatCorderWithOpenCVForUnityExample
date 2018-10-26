@@ -6,6 +6,7 @@ using NatCorderU.Core;
 using NatShareU;
 using UnityEngine.Video;
 using NatCorderU.Core.Recorders;
+using NatCorderU.Core.Timing;
 
 #if UNITY_5_3 || UNITY_5_3_OR_NEWER
 using UnityEngine.SceneManagement;
@@ -21,16 +22,17 @@ namespace NatCorderWithOpenCVForUnityExample
     public class VideoRecordingExample : MonoBehaviour
     {
         /// <summary>
-        /// The requested resolution dropdown.
-        /// </summary>
-        public Dropdown requestedResolutionDropdown;
-
-        /// <summary>
         /// The requested resolution.
         /// </summary>
         public ResolutionPreset requestedResolution = ResolutionPreset._640x480;
 
+        /// <summary>
+        /// The requested resolution dropdown.
+        /// </summary>
+        public Dropdown requestedResolutionDropdown;
+
         [Space(20)]
+        [Header("Recording")]
 
         /// <summary>
         /// The type of container.
@@ -52,6 +54,8 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public Toggle applyComicFilterToggle;
 
+        [Header("Microphone")]
+
         /// <summary>
         /// Determines if record microphone audio.
         /// </summary>
@@ -61,6 +65,8 @@ namespace NatCorderWithOpenCVForUnityExample
         /// The record microphone audio toggle.
         /// </summary>
         public Toggle recordMicrophoneAudioToggle;
+
+        [Space(20)]
 
         /// <summary>
         /// The record video button.
@@ -107,6 +113,8 @@ namespace NatCorderWithOpenCVForUnityExample
         AudioSource microphoneSource;
 
         AudioRecorder audioRecorder;
+
+        IClock recordingClock;
 
         const float MAX_RECORDING_TIME = 10f; // Seconds
 
@@ -253,7 +261,7 @@ namespace NatCorderWithOpenCVForUnityExample
 					// Blit to recording frame
 					var encoderFrame = NatCorder.AcquireFrame();
 				    Graphics.Blit(texture, encoderFrame);
-                    NatCorder.CommitFrame (encoderFrame);
+                    NatCorder.CommitFrame (encoderFrame, recordingClock.CurrentTimestamp);
 				}
             }
 
@@ -280,13 +288,15 @@ namespace NatCorderWithOpenCVForUnityExample
             var framerate = container == Container.GIF ? 10 : 30;
             var videoFormat = new VideoFormat(recordingWidth, recordingHeight, framerate);
             var audioFormat = recordMicrophoneAudio ? AudioFormat.Unity: AudioFormat.None;
+            // Create a recording clock for generating timestamps
+            recordingClock = new RealtimeClock();
             // Start recording
             NatCorder.StartRecording(container, videoFormat, audioFormat, OnVideo);
 
             // Start microphone and create audio recorder
             if (recordMicrophoneAudio) {
                 StartMicrophone();
-                audioRecorder = AudioRecorder.Create(microphoneSource, true);
+                audioRecorder = AudioRecorder.Create(microphoneSource, true, recordingClock);
             }
 
             StartCoroutine ("Countdown");
@@ -299,11 +309,9 @@ namespace NatCorderWithOpenCVForUnityExample
         private void StartMicrophone ()
         {
             #if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
-            // If the clip has not been set, set it now
-            if (microphoneSource.clip == null) {
-                microphoneSource.clip = Microphone.Start(null, true, 60, 48000);
-                while (Microphone.GetPosition(null) <= 0) ;
-            }            
+            // Create a microphone clip
+            microphoneSource.clip = Microphone.Start(null, true, 60, 48000);
+            while (Microphone.GetPosition(null) <= 0) ;          
             // Play through audio source
             microphoneSource.timeSamples = Microphone.GetPosition(null);
             microphoneSource.loop = true;
