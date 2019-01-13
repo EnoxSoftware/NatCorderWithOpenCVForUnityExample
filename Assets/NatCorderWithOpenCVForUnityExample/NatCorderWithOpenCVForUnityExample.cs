@@ -1,11 +1,8 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
-using System;
-
-#if UNITY_5_3 || UNITY_5_3_OR_NEWER
 using UnityEngine.SceneManagement;
-#endif
 
 namespace NatCorderWithOpenCVForUnityExample
 {
@@ -16,7 +13,8 @@ namespace NatCorderWithOpenCVForUnityExample
         public ScrollRect scrollRect;
         static float verticalNormalizedPosition = 1f;
 
-        void Awake () {
+        void Awake ()
+        {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
         }
@@ -47,7 +45,7 @@ namespace NatCorderWithOpenCVForUnityExample
             #elif UNITY_WEBGL
             versionInfo.text += "WebGL";
             #endif
-            versionInfo.text +=  " ";
+            versionInfo.text += " ";
             #if ENABLE_MONO
             versionInfo.text +=  "Mono";
             #elif ENABLE_IL2CPP
@@ -64,7 +62,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
 
         }
-        
+
         public void OnScrollRectValueChanged ()
         {
             verticalNormalizedPosition = scrollRect.verticalNormalizedPosition;
@@ -73,29 +71,17 @@ namespace NatCorderWithOpenCVForUnityExample
 
         public void OnShowSystemInfoButtonClick ()
         {
-            #if UNITY_5_3 || UNITY_5_3_OR_NEWER
             SceneManager.LoadScene ("ShowSystemInfo");
-            #else
-            Application.LoadLevel ("ShowSystemInfo");
-            #endif
         }
 
         public void OnShowLicenseButtonClick ()
         {
-            #if UNITY_5_3 || UNITY_5_3_OR_NEWER
-			SceneManager.LoadScene ("ShowLicense");
-            #else
-            Application.LoadLevel ("ShowLicense");
-            #endif
+            SceneManager.LoadScene ("ShowLicense");
         }
 
         public void OnVideoRecordingExampleButtonClick ()
         {
-            #if UNITY_5_3 || UNITY_5_3_OR_NEWER
             SceneManager.LoadScene ("VideoRecordingExample");
-            #else
-            Application.LoadLevel ("VideoRecordingExample");
-            #endif
         }
     }
 }
