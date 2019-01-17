@@ -39,7 +39,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Dictionary<string, string> dicSystemInfo = new Dictionary<string, string> ();
 
-            dicSystemInfo.Add ("OpenCVForUnity version", OpenCVForUnity.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.Utils.getVersion () + " (" + OpenCVForUnity.Core.VERSION + ")");
+            dicSystemInfo.Add ("OpenCVForUnity version", OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion () + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")");
             dicSystemInfo.Add ("Build Unity version", Application.unityVersion);
 
             #if UNITY_EDITOR

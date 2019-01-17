@@ -8,7 +8,10 @@ using NatShareU;
 using NatCorderU.Core;
 using NatCorderU.Core.Recorders;
 using NatCorderU.Core.Clocks;
-using OpenCVForUnity;
+using OpenCVForUnity.UnityUtils.Helper;
+using OpenCVForUnity.CoreModule;
+using OpenCVForUnity.ImgprocModule;
+using OpenCVForUnity.UnityUtils;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
@@ -247,8 +250,8 @@ namespace NatCorderWithOpenCVForUnityExample
                     comicFilter.Process (rgbaMat, rgbaMat);
 
                 if (NatCorder.IsRecording) {
-                    Imgproc.putText (rgbaMat, "[NatCorder With OpenCVForUnity Example]", new Point (5, rgbaMat.rows () - 30), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
-                    Imgproc.putText (rgbaMat, "- Video Recording Example", new Point (5, rgbaMat.rows () - 10), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    Imgproc.putText (rgbaMat, "[NatCorder With OpenCVForUnity Example]", new Point (5, rgbaMat.rows () - 30), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    Imgproc.putText (rgbaMat, "- Video Recording Example", new Point (5, rgbaMat.rows () - 10), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
                 }
 
                 // Restore the coordinate system of the image by OpenCV's Flip function.

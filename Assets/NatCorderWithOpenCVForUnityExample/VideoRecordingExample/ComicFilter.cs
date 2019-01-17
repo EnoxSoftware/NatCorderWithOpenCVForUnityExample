@@ -1,5 +1,6 @@
-﻿using OpenCVForUnity;
-using System;
+﻿using System;
+using OpenCVForUnity.CoreModule;
+using OpenCVForUnity.ImgprocModule;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
@@ -36,15 +37,15 @@ namespace NatCorderWithOpenCVForUnityExample
                 grayPixels = null;
                 maskPixels = null;
             }
-            grayMat = grayMat ?? new Mat(src.height(), src.width(), CvType.CV_8UC1);
-            lineMat = lineMat ?? new Mat(src.height(), src.width(), CvType.CV_8UC1);
-            maskMat = maskMat ?? new Mat(src.height(), src.width(), CvType.CV_8UC1);
+            grayMat = grayMat ?? new Mat (src.height (), src.width (), CvType.CV_8UC1);
+            lineMat = lineMat ?? new Mat (src.height (), src.width (), CvType.CV_8UC1);
+            maskMat = maskMat ?? new Mat (src.height (), src.width (), CvType.CV_8UC1);
             //create a striped background.
-            bgMat = new Mat (src.height(), src.width(), CvType.CV_8UC1, new Scalar (255));
-            for (int i = 0; i < bgMat.rows ()*2.5f; i=i+4) {
+            bgMat = new Mat (src.height (), src.width (), CvType.CV_8UC1, new Scalar (255));
+            for (int i = 0; i < bgMat.rows () * 2.5f; i = i + 4) {
                 Imgproc.line (bgMat, new Point (0, 0 + i), new Point (bgMat.cols (), -bgMat.cols () + i), new Scalar (0), 1);
             }
-            grayDstMat = grayDstMat ?? new Mat(src.height(), src.width(), CvType.CV_8UC1);
+            grayDstMat = grayDstMat ?? new Mat (src.height (), src.width (), CvType.CV_8UC1);
 
             grayPixels = grayPixels ?? new byte[grayMat.cols () * grayMat.rows () * grayMat.channels ()];
             maskPixels = maskPixels ?? new byte[maskMat.cols () * maskMat.rows () * maskMat.channels ()];
@@ -80,7 +81,7 @@ namespace NatCorderWithOpenCVForUnityExample
             Imgproc.cvtColor (grayDstMat, dst, Imgproc.COLOR_GRAY2RGBA);
         }
 
-        public void Dispose()
+        public void Dispose ()
         {
             if (grayMat != null) {
                 grayMat.Dispose ();
