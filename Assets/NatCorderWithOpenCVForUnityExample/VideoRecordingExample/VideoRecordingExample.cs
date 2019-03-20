@@ -5,9 +5,9 @@ using UnityEngine.UI;
 using UnityEngine.Video;
 using UnityEngine.SceneManagement;
 using NatShareU;
-using NatCorderU.Core;
-using NatCorderU.Core.Recorders;
-using NatCorderU.Core.Clocks;
+using NatCorder;
+using NatCorder.Inputs;
+using NatCorder.Clocks;
 using OpenCVForUnity.UnityUtils.Helper;
 using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
@@ -37,7 +37,7 @@ namespace NatCorderWithOpenCVForUnityExample
         /// <summary>
         /// The type of container.
         /// </summary>
-        public Container container = Container.MP4;
+        public ContainerPreset container = ContainerPreset.MP4;
 
         /// <summary>
         /// The container dropdown.
@@ -110,9 +110,11 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         WebCamTextureToMatHelper webCamTextureToMatHelper;
 
+        IMediaRecorder videoRecorder;
+
         AudioSource microphoneSource;
 
-        AudioRecorder audioRecorder;
+        AudioInput audioInput;
 
         IClock recordingClock;
 
@@ -125,16 +127,18 @@ namespace NatCorderWithOpenCVForUnityExample
 
         bool isVideoPlaying;
 
+        bool isVideoRecording;
+
+        int frameCount;
+
+        int recordEveryNthFrame;
+
         ComicFilter comicFilter;
 
         /// <summary>
         /// The FPS monitor.
         /// </summary>
         FpsMonitor fpsMonitor;
-
-        #if UNITY_ANDROID && !UNITY_EDITOR
-        float rearCameraRequestedFPS;
-        #endif
 
         // Use this for initialization
         void Start ()
@@ -148,19 +152,10 @@ namespace NatCorderWithOpenCVForUnityExample
             webCamTextureToMatHelper.requestedHeight = height;
 
             #if UNITY_ANDROID && !UNITY_EDITOR
-            // Set the requestedFPS parameter to avoid the problem of the WebCamTexture image becoming low light on some Android devices. (Pixel, pixel 2)
-            // https://forum.unity.com/threads/android-webcamtexture-in-low-light-only-some-models.520656/
-            // https://forum.unity.com/threads/released-opencv-for-unity.277080/page-33#post-3445178
-            rearCameraRequestedFPS = webCamTextureToMatHelper.requestedFPS;
-            if (webCamTextureToMatHelper.requestedIsFrontFacing) {                
-                webCamTextureToMatHelper.requestedFPS = 15;
-                webCamTextureToMatHelper.Initialize ();
-            } else {
-                webCamTextureToMatHelper.Initialize ();
-            }
-            #else
-            webCamTextureToMatHelper.Initialize ();
+            // Avoids the front camera low light issue that occurs in only some Android devices (e.g. Google Pixel, Pixel2).
+            webCamTextureToMatHelper.avoidAndroidFrontCameraLowLightIssue = true;
             #endif
+            webCamTextureToMatHelper.Initialize ();
 
             microphoneSource = gameObject.GetComponent<AudioSource> ();
 
@@ -249,7 +244,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 if (applyComicFilter)
                     comicFilter.Process (rgbaMat, rgbaMat);
 
-                if (NatCorder.IsRecording) {
+                if (isVideoRecording) {
                     Imgproc.putText (rgbaMat, "[NatCorder With OpenCVForUnity Example]", new Point (5, rgbaMat.rows () - 30), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
                     Imgproc.putText (rgbaMat, "- Video Recording Example", new Point (5, rgbaMat.rows () - 10), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
                 }
@@ -257,11 +252,12 @@ namespace NatCorderWithOpenCVForUnityExample
                 // Restore the coordinate system of the image by OpenCV's Flip function.
                 Utils.fastMatToTexture2D (rgbaMat, texture);
 
-                if (NatCorder.IsRecording) {					
+                // Record frames
+                if (videoRecorder != null && isVideoRecording && frameCount++ % recordEveryNthFrame == 0) {
                     // Blit to recording frame
-                    var encoderFrame = NatCorder.AcquireFrame ();
-                    Graphics.Blit (texture, encoderFrame);
-                    NatCorder.CommitFrame (encoderFrame, recordingClock.CurrentTimestamp);
+                    var frame = videoRecorder.AcquireFrame ();
+                    Graphics.Blit (texture, frame);
+                    videoRecorder.CommitFrame (frame, recordingClock.Timestamp);
                 }
             }
 
@@ -272,31 +268,46 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void StartRecording ()
         {
-            if (isVideoPlaying || NatCorder.IsRecording)
+            if (isVideoPlaying || isVideoRecording)
                 return;
 
             Debug.Log ("StartRecording ()");
             if (fpsMonitor != null) {
                 fpsMonitor.consoleText = "Recording";
             }   
-
+                
             // First make sure recording microphone is only on MP4
-            recordMicrophoneAudio &= container == Container.MP4;
+            recordMicrophoneAudio &= container == ContainerPreset.MP4;
             // Create recording configurations
             int recordingWidth = webCamTextureToMatHelper.GetWidth ();
             int recordingHeight = webCamTextureToMatHelper.GetHeight ();
-            var framerate = container == Container.GIF ? 10 : 30;
-            var videoFormat = new VideoFormat (recordingWidth, recordingHeight, framerate);
-            var audioFormat = recordMicrophoneAudio ? AudioFormat.Unity : AudioFormat.None;
-            // Create a recording clock for generating timestamps
-            recordingClock = new RealtimeClock ();
-            // Start recording
-            NatCorder.StartRecording (container, videoFormat, audioFormat, OnVideo);
 
-            // Start microphone and create audio recorder
+            // Start recording
+            recordingClock = new RealtimeClock ();
+            if (container == ContainerPreset.MP4) {
+                videoRecorder = new MP4Recorder (
+                    recordingWidth,
+                    recordingHeight,
+                    30,
+                    recordMicrophoneAudio ? AudioSettings.outputSampleRate : 0,
+                    recordMicrophoneAudio ? (int)AudioSettings.speakerMode : 0,
+                    OnVideo
+                );
+                recordEveryNthFrame = 1;
+            } else {
+                videoRecorder = new GIFRecorder (
+                    recordingWidth,
+                    recordingHeight,
+                    0.1f,
+                    OnVideo
+                );
+                recordEveryNthFrame = 5;
+            }
+            frameCount = 0;
+            // Start microphone and create audio input
             if (recordMicrophoneAudio) {
                 StartMicrophone ();
-                audioRecorder = AudioRecorder.Create (microphoneSource, true, recordingClock);
+                audioInput = AudioInput.Create (videoRecorder, microphoneSource, recordingClock, true);
             }
 
             StartCoroutine ("Countdown");
@@ -304,6 +315,8 @@ namespace NatCorderWithOpenCVForUnityExample
             HideAllVideoUI ();
             recordVideoButton.interactable = true;
             recordVideoButton.GetComponentInChildren<UnityEngine.UI.Text> ().color = Color.red;
+
+            isVideoRecording = true;
         }
 
         private void StartMicrophone ()
@@ -322,7 +335,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void StopRecording ()
         {
-            if (!NatCorder.IsRecording)
+            if (!isVideoRecording)
                 return;
 
             Debug.Log ("StopRecording ()");
@@ -332,17 +345,27 @@ namespace NatCorderWithOpenCVForUnityExample
 
             // Stop the microphone if we used it for recording
             if (recordMicrophoneAudio) {
-                Microphone.End (null);
-                microphoneSource.Stop ();
-                audioRecorder.Dispose ();
+                StopMicrophone ();
+                audioInput.Dispose ();
             }
-            // Stop the recording
-            NatCorder.StopRecording ();
+                
+            // Stop recording
+            videoRecorder.Dispose ();
 
             StopCoroutine ("Countdown");
 
             ShowAllVideoUI ();
             recordVideoButton.GetComponentInChildren<UnityEngine.UI.Text> ().color = Color.black;
+
+            isVideoRecording = false;
+        }
+
+        private void StopMicrophone ()
+        {
+            #if !UNITY_WEBGL || UNITY_EDITOR
+            Microphone.End (null);
+            microphoneSource.Stop ();
+            #endif
         }
 
         private IEnumerator Countdown ()
@@ -371,7 +394,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void PlayVideo (string path)
         {
-            if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (path))
+            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty (path))
                 return;
 
             Debug.Log ("PlayVideo ()");
@@ -513,16 +536,7 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public void OnChangeCameraButtonClick ()
         {
-            #if UNITY_ANDROID && !UNITY_EDITOR
-            if (!webCamTextureToMatHelper.IsFrontFacing ()) {
-                rearCameraRequestedFPS = webCamTextureToMatHelper.requestedFPS;
-                webCamTextureToMatHelper.Initialize (!webCamTextureToMatHelper.IsFrontFacing (), 15, webCamTextureToMatHelper.rotate90Degree);
-            } else {                
-                webCamTextureToMatHelper.Initialize (!webCamTextureToMatHelper.IsFrontFacing (), rearCameraRequestedFPS, webCamTextureToMatHelper.rotate90Degree);
-            }
-            #else
             webCamTextureToMatHelper.requestedIsFrontFacing = !webCamTextureToMatHelper.IsFrontFacing ();
-            #endif
         }
 
         /// <summary>
@@ -547,7 +561,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log (result);
             if ((int)container != result + 1) {
-                container = (Container)(result + 1);
+                container = (ContainerPreset)(result + 1);
             }
         }
 
@@ -581,7 +595,7 @@ namespace NatCorderWithOpenCVForUnityExample
             if (isVideoPlaying)
                 return;
 
-            if (NatCorder.IsRecording) {                
+            if (isVideoRecording) {                
                 StopRecording (); 
             } else {
                 StartRecording ();
@@ -595,7 +609,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log ("OnPlayVideoButtonClick ()");
 
-            if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
+            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty (videoPath))
                 return;
 
             if (System.IO.Path.GetExtension (videoPath) == ".gif") {                
@@ -618,7 +632,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log ("OnPlayVideoFullScreenButtonClick ()");
 
-            if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
+            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty (videoPath))
                 return;
 
             // Playback the video
@@ -640,7 +654,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log ("OnShareButtonClick ()");
 
-            if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
+            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty (videoPath))
                 return;
             
             NatShare.Share (videoPath,
@@ -656,7 +670,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log ("OnSaveToCameraRollButtonClick ()");
 
-            if (isVideoPlaying || NatCorder.IsRecording || string.IsNullOrEmpty (videoPath))
+            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty (videoPath))
                 return;
             
             NatShare.SaveToCameraRoll (videoPath, "NatCorderWithOpenCVForUnityExample");
@@ -694,6 +708,12 @@ namespace NatCorderWithOpenCVForUnityExample
                 height = 720;
                 break;
             }
+        }
+
+        public enum ContainerPreset
+        {
+            MP4 = 1,
+            GIF
         }
     }
 }

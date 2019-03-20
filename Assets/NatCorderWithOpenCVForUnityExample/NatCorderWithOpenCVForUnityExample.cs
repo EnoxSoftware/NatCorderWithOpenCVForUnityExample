@@ -20,8 +20,14 @@ namespace NatCorderWithOpenCVForUnityExample
         }
 
         // Use this for initialization
-        void Start ()
+        IEnumerator Start ()
         {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            yield return RequestAndroidPermission ("android.permission.WRITE_EXTERNAL_STORAGE");
+            yield return RequestAndroidPermission ("android.permission.CAMERA");
+            yield return RequestAndroidPermission ("android.permission.RECORD_AUDIO");
+            #endif
+
             exampleTitle.text = "NatCorderWithOpenCVForUnity Example " + Application.version;
 
             versionInfo.text = OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion () + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")";
@@ -47,7 +53,7 @@ namespace NatCorderWithOpenCVForUnityExample
             #endif
             versionInfo.text += " ";
             #if ENABLE_MONO
-            versionInfo.text +=  "Mono";
+            versionInfo.text += "Mono";
             #elif ENABLE_IL2CPP
             versionInfo.text += "IL2CPP";
             #elif ENABLE_DOTNET
@@ -55,7 +61,23 @@ namespace NatCorderWithOpenCVForUnityExample
             #endif
 
             scrollRect.verticalNormalizedPosition = verticalNormalizedPosition;
+
+            yield return null;
         }
+
+        #if UNITY_ANDROID && !UNITY_EDITOR
+        private IEnumerator RequestAndroidPermission(string permission)
+        {
+            if (!RuntimePermissionHelper.HasPermission(permission))
+            {
+                if (RuntimePermissionHelper.ShouldShowRequestPermissionRationale(permission))
+                {
+                    RuntimePermissionHelper.RequestPermission(new string[] { permission });
+                }
+            }
+            yield return new WaitForSeconds(0.5f);
+        }
+        #endif
 
         // Update is called once per frame
         void Update ()
