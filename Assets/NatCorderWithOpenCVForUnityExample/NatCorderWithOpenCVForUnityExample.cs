@@ -70,11 +70,26 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             if (!RuntimePermissionHelper.HasPermission(permission))
             {
+                // Permission is not granted
+                // Should we show an explanation?
                 if (RuntimePermissionHelper.ShouldShowRequestPermissionRationale(permission))
                 {
+                    // Show an explanation to the user *asynchronously* -- don't block
+                    // this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+                    RuntimePermissionHelper.RequestPermission(new string[] { permission });
+                }
+                else
+                {
+                    // No explanation needed; request the permission
                     RuntimePermissionHelper.RequestPermission(new string[] { permission });
                 }
             }
+            else
+            {
+                // Permission has already been granted
+            }
+
             yield return new WaitForSeconds(0.5f);
         }
         #endif

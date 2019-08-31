@@ -66,6 +66,16 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public Toggle recordMicrophoneAudioToggle;
 
+        /// <summary>
+        /// The microphone frequency.
+        /// </summary>
+        public MicrophoneFrequencyPreset microphoneFrequency = MicrophoneFrequencyPreset._48000;
+
+        /// <summary>
+        /// The microphone frequency.
+        /// </summary>
+        public Dropdown microphoneFrequencyDropdown;
+
         [Space (20)]
 
         /// <summary>
@@ -133,6 +143,14 @@ namespace NatCorderWithOpenCVForUnityExample
 
         int recordEveryNthFrame;
 
+        int recordingWidth;
+        int recordingHeight;
+        int videoFramerate;
+        int audioSampleRate;
+        int audioChannelCount;
+        int videoBitrate;
+        float frameDuration;
+
         ComicFilter comicFilter;
 
         /// <summary>
@@ -165,7 +183,10 @@ namespace NatCorderWithOpenCVForUnityExample
 
             // Update GUI state
             requestedResolutionDropdown.value = (int)requestedResolution;
-            containerDropdown.value = (int)container - 1;
+            containerDropdown.value = (int)container;
+            string[] enumNames = System.Enum.GetNames(typeof(MicrophoneFrequencyPreset));
+            int index = Array.IndexOf(enumNames, microphoneFrequency.ToString());
+            microphoneFrequencyDropdown.value = index;
             applyComicFilterToggle.isOn = applyComicFilter;
             recordMicrophoneAudioToggle.isOn = recordMicrophoneAudio;
         }
@@ -245,8 +266,16 @@ namespace NatCorderWithOpenCVForUnityExample
                     comicFilter.Process (rgbaMat, rgbaMat);
 
                 if (isVideoRecording) {
-                    Imgproc.putText (rgbaMat, "[NatCorder With OpenCVForUnity Example]", new Point (5, rgbaMat.rows () - 30), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
-                    Imgproc.putText (rgbaMat, "- Video Recording Example", new Point (5, rgbaMat.rows () - 10), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar (255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    Imgproc.putText(rgbaMat, "[NatCorder With OpenCVForUnity Example]", new Point(5, rgbaMat.rows() - 70), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    Imgproc.putText(rgbaMat, "- Video Recording Example", new Point(5, rgbaMat.rows() - 50), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    if (container == ContainerPreset.MP4 || container == ContainerPreset.HEVC)
+                    {
+                        Imgproc.putText(rgbaMat, "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FPS:" + videoFramerate, new Point(5, rgbaMat.rows() - 30), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                        Imgproc.putText(rgbaMat, "- ASR:" + audioSampleRate + " ACh:" + audioChannelCount + " VBR:" + videoBitrate + " MicFreq:" + (int)microphoneFrequency, new Point(5, rgbaMat.rows() - 10), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    }
+                    else if (container == ContainerPreset.GIF) {
+                        Imgproc.putText(rgbaMat, "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FrameDur:" + frameDuration, new Point(5, rgbaMat.rows() - 30), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255, 255, 255, 255), 1, Imgproc.LINE_AA, false);
+                    }
                 }
 
                 // Restore the coordinate system of the image by OpenCV's Flip function.
@@ -254,10 +283,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
                 // Record frames
                 if (videoRecorder != null && isVideoRecording && frameCount++ % recordEveryNthFrame == 0) {
-                    // Blit to recording frame
-                    var frame = videoRecorder.AcquireFrame ();
-                    Graphics.Blit (texture, frame);
-                    videoRecorder.CommitFrame (frame, recordingClock.Timestamp);
+                    videoRecorder.CommitFrame((IntPtr)rgbaMat.dataAddr(), recordingClock.Timestamp);
                 }
             }
 
@@ -272,15 +298,18 @@ namespace NatCorderWithOpenCVForUnityExample
                 return;
 
             Debug.Log ("StartRecording ()");
-            if (fpsMonitor != null) {
-                fpsMonitor.consoleText = "Recording";
-            }   
-                
-            // First make sure recording microphone is only on MP4
-            recordMicrophoneAudio &= container == ContainerPreset.MP4;
+
+            // First make sure recording microphone is only on MP4 or HEVC
+            recordMicrophoneAudio = recordMicrophoneAudioToggle.isOn;
+            recordMicrophoneAudio &= (container == ContainerPreset.MP4 || container == ContainerPreset.HEVC);
             // Create recording configurations
-            int recordingWidth = webCamTextureToMatHelper.GetWidth ();
-            int recordingHeight = webCamTextureToMatHelper.GetHeight ();
+            recordingWidth = webCamTextureToMatHelper.GetWidth ();
+            recordingHeight = webCamTextureToMatHelper.GetHeight ();
+            videoFramerate = 30;
+            audioSampleRate = recordMicrophoneAudio ? AudioSettings.outputSampleRate : 0;
+            audioChannelCount = recordMicrophoneAudio ? (int)AudioSettings.speakerMode : 0;
+            videoBitrate = (int)(960 * 540 * 11.4f);
+            frameDuration = 0.1f;
 
             // Start recording
             recordingClock = new RealtimeClock ();
@@ -288,26 +317,37 @@ namespace NatCorderWithOpenCVForUnityExample
                 videoRecorder = new MP4Recorder (
                     recordingWidth,
                     recordingHeight,
-                    30,
-                    recordMicrophoneAudio ? AudioSettings.outputSampleRate : 0,
-                    recordMicrophoneAudio ? (int)AudioSettings.speakerMode : 0,
+                    videoFramerate,
+                    audioSampleRate,
+                    audioChannelCount,
                     OnVideo
                 );
                 recordEveryNthFrame = 1;
-            } else {
+            } else if (container == ContainerPreset.HEVC) {
+                videoRecorder = new HEVCRecorder(
+                    recordingWidth,
+                    recordingHeight,
+                    videoFramerate,
+                    audioSampleRate,
+                    audioChannelCount,
+                    OnVideo
+                );
+                recordEveryNthFrame = 1;
+            } else if (container == ContainerPreset.GIF) {
                 videoRecorder = new GIFRecorder (
                     recordingWidth,
                     recordingHeight,
-                    0.1f,
+                    frameDuration,
                     OnVideo
                 );
                 recordEveryNthFrame = 5;
             }
             frameCount = 0;
+
             // Start microphone and create audio input
             if (recordMicrophoneAudio) {
                 StartMicrophone ();
-                audioInput = AudioInput.Create (videoRecorder, microphoneSource, recordingClock, true);
+                audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
             }
 
             StartCoroutine ("Countdown");
@@ -323,7 +363,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             #if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
             // Create a microphone clip
-            microphoneSource.clip = Microphone.Start (null, true, 60, 48000);
+            microphoneSource.clip = Microphone.Start (null, true, (int)MAX_RECORDING_TIME, (int)microphoneFrequency);
             while (Microphone.GetPosition (null) <= 0)
                 ;          
             // Play through audio source
@@ -373,9 +413,15 @@ namespace NatCorderWithOpenCVForUnityExample
             float startTime = Time.time;
             while ((Time.time - startTime) < MAX_RECORDING_TIME) {
 
-                if (fpsMonitor != null) {
-                    fpsMonitor.consoleText += ".";
-                }   
+                if (fpsMonitor != null)
+                {
+                    string str = "Recording";
+                    for (int i = 0; i < (int)(MAX_RECORDING_TIME - (Time.time - startTime)); i++)
+                    {
+                        str += ".";
+                    }
+                    fpsMonitor.consoleText = str;
+                }
 
                 yield return new WaitForSeconds (0.5f);
             }
@@ -409,7 +455,6 @@ namespace NatCorderWithOpenCVForUnityExample
 
             videoPlayer.source = VideoSource.Url;
             videoPlayer.url = path;
-
             videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
             videoPlayer.controlledAudioTrackCount = 1;
             videoPlayer.EnableAudioTrack (0, true);
@@ -464,7 +509,9 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void ShowAllVideoUI ()
         {
+            requestedResolutionDropdown.interactable = true;
             containerDropdown.interactable = true;
+            microphoneFrequencyDropdown.interactable = true;
             applyComicFilterToggle.interactable = true;
             recordMicrophoneAudioToggle.interactable = true;
             recordVideoButton.interactable = true;
@@ -477,7 +524,9 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void HideAllVideoUI ()
         {
+            requestedResolutionDropdown.interactable = false;
             containerDropdown.interactable = false;
+            microphoneFrequencyDropdown.interactable = false;
             applyComicFilterToggle.interactable = false;
             recordMicrophoneAudioToggle.interactable = false;
             recordVideoButton.interactable = false;
@@ -559,9 +608,28 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public void OnContainerDropdownValueChanged (int result)
         {
-            Debug.Log (result);
-            if ((int)container != result + 1) {
-                container = (ContainerPreset)(result + 1);
+            if ((int)container != result) {
+                container = (ContainerPreset)(result);
+            }
+
+            #if UNITY_WEBGL && !UNITY_EDITOR
+            // WebGL platform only supports MP4 format.
+            containerDropdown.value = (int)ContainerPreset.MP4;
+            container = ContainerPreset.MP4;
+            #endif
+        }
+
+        /// <summary>
+        /// Raises the microphone frequency dropdown value changed event.
+        /// </summary>
+        public void OnMicrophoneFrequencyDropdownValueChanged(int result)
+        {
+            string[] enumNames = Enum.GetNames(typeof(MicrophoneFrequencyPreset));
+            int value = (int)System.Enum.Parse(typeof(MicrophoneFrequencyPreset), enumNames[result], true);
+
+            if ((int)microphoneFrequency != value)
+            {
+                microphoneFrequency = (MicrophoneFrequencyPreset)value;
             }
         }
 
@@ -620,8 +688,10 @@ namespace NatCorderWithOpenCVForUnityExample
             // Playback the video
             #if UNITY_IOS
             PlayVideo ("file://" + videoPath);
+            #elif UNITY_WEBGL
+            Debug.Log ("Please open the video URL (" + videoPath + ") in a new browser tab.");
             #else
-            PlayVideo (videoPath);
+            PlayVideo(videoPath);
             #endif
         }
 
@@ -712,8 +782,18 @@ namespace NatCorderWithOpenCVForUnityExample
 
         public enum ContainerPreset
         {
-            MP4 = 1,
-            GIF
+            MP4,
+            HEVC,
+            GIF,
+        }
+
+        public enum MicrophoneFrequencyPreset
+        {
+            _16000 = 16000,
+            _24000 = 24000,
+            _32000 = 32000,
+            _44100 = 44100,
+            _48000 = 48000,
         }
     }
 }

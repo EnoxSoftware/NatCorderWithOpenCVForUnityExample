@@ -5,12 +5,12 @@
 
 
 ## Environment
-* Anddroid (Pixel, Nexus 7, Zenfone, SC-04E) / iOS (iPhone8, iPhone6)
-* Unity >= 5.6.6f2+
+* Anddroid (Pixel) / iOS (iPhone8, iPhone6s)
+* Unity >= 2018.4.7f1(LTS)+
 * Scripting backend MONO / IL2CPP
-* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.5 
+* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.6.1 
 * [NatShare - Mobile Sharing API](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705?aid=1011l4ehR) 1.1f3+ 
-* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.3.4+ 
+* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.3.6+ 
 
 
 Demo
@@ -26,6 +26,8 @@ Demo
 1. Import OpenCVForUnity.
     * Setup the OpenCVForUnity. (Tools > OpenCV for Unity > Set Plugin Import Settings)
 1. Import the NatCorderWithOpenCVForUnityExample.unitypackage.
+1. Change the "Minimum API Level" to 24 or higher in the "Player Settings (Androd)" Inspector.
+1. Change the "Target minimum iOS Version" to 11 or higher in the "Player Settings (iOS)" Inspector.
 1. Add the "Assets/NatCorderWithOpenCVForUnityExample/*.unity" files to the "Scenes In Build" list in the "Build Settings" window.
 1. Build and Deploy to Android and iOS.
 
