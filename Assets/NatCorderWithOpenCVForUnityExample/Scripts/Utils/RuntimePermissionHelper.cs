@@ -1,58 +1,116 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
-    public class RuntimePermissionHelper
+    public class RuntimePermissionHelper : MonoBehaviour
     {
-        private RuntimePermissionHelper ()
-        {
-        }
 
-        private static AndroidJavaObject GetActivity ()
+        public virtual IEnumerator hasUserAuthorizedCameraPermission()
         {
-            using (var UnityPlayer = new AndroidJavaClass ("com.unity3d.player.UnityPlayer")) {
-                return UnityPlayer.GetStatic<AndroidJavaObject> ("currentActivity");
+#if UNITY_IOS && UNITY_2018_1_OR_NEWER
+            UserAuthorization mode = UserAuthorization.WebCam;
+            if (!Application.HasUserAuthorization (mode)) {
+                yield return RequestUserAuthorization (mode);
+            }                
+            yield return Application.HasUserAuthorization (mode);    
+#elif UNITY_ANDROID && UNITY_2018_3_OR_NEWER
+            string permission = UnityEngine.Android.Permission.Camera;
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
+            {
+                yield return RequestUserPermission(permission);
             }
+            yield return UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission);
+#else
+            yield return true;
+#endif
         }
 
-        private static bool IsAndroidMOrGreater ()
+        public virtual IEnumerator hasUserAuthorizedMicrophonePermission()
         {
-            using (var VERSION = new AndroidJavaClass ("android.os.Build$VERSION")) {
-                return VERSION.GetStatic<int> ("SDK_INT") >= 23;
+#if UNITY_IOS && UNITY_2018_1_OR_NEWER
+            UserAuthorization mode = UserAuthorization.Microphone;
+            if (!Application.HasUserAuthorization (mode)) {
+                yield return RequestUserAuthorization (mode);
+            }                
+            yield return Application.HasUserAuthorization (mode);    
+#elif UNITY_ANDROID && UNITY_2018_3_OR_NEWER
+            string permission = UnityEngine.Android.Permission.Microphone;
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
+            {
+                yield return RequestUserPermission(permission);
             }
+            yield return UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission);
+#else
+            yield return true;
+#endif
         }
 
-        public static bool HasPermission (string permission)
+        public virtual IEnumerator hasUserAuthorizedExternalStorageWritePermission()
         {
-            if (IsAndroidMOrGreater ()) {
-                using (var activity = GetActivity ()) {
-                    return activity.Call<int> ("checkSelfPermission", permission) == 0;
+#if UNITY_ANDROID && UNITY_2018_3_OR_NEWER
+            string permission = UnityEngine.Android.Permission.ExternalStorageWrite;
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
+            {
+                yield return RequestUserPermission(permission);
+            }
+            yield return UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission);
+#else
+            yield return true;
+#endif
+        }
+
+#if (UNITY_IOS && UNITY_2018_1_OR_NEWER) || (UNITY_ANDROID && UNITY_2018_3_OR_NEWER)
+        protected bool isUserRequestingPermission;
+
+        protected virtual IEnumerator OnApplicationFocus(bool hasFocus)
+        {
+            yield return null;
+
+            if (isUserRequestingPermission && hasFocus)
+                isUserRequestingPermission = false;
+        }
+
+#if UNITY_IOS
+        protected virtual IEnumerator RequestUserAuthorization(UserAuthorization mode)
+        {
+            isUserRequestingPermission = true;
+            yield return Application.RequestUserAuthorization(mode);
+
+            float timeElapsed = 0;
+            while (isUserRequestingPermission)
+            {
+                if (timeElapsed > 0.25f){
+                    isUserRequestingPermission = false;
+                    yield break;
                 }
+                timeElapsed += Time.deltaTime;
+
+                yield return null;
             }
-
-            return true;
+            yield break;
         }
-
-        public static bool ShouldShowRequestPermissionRationale (string permission)
+#elif UNITY_ANDROID
+        protected virtual IEnumerator RequestUserPermission(string permission)
         {
-            if (IsAndroidMOrGreater ()) {
-                using (var activity = GetActivity ()) {
-                    return activity.Call<bool> ("shouldShowRequestPermissionRationale", permission);
-                }
-            }
+            isUserRequestingPermission = true;
+            UnityEngine.Android.Permission.RequestUserPermission(permission);
 
-            return false;
-        }
-
-        public static void RequestPermission (string[] permissiions)
-        {
-            if (IsAndroidMOrGreater ()) {
-                using (var activity = GetActivity ()) {
-                    activity.Call ("requestPermissions", permissiions, 0);
+            float timeElapsed = 0;
+            while (isUserRequestingPermission)
+            {
+                if (timeElapsed > 0.25f)
+                {
+                    isUserRequestingPermission = false;
+                    yield break;
                 }
+                timeElapsed += Time.deltaTime;
+
+                yield return null;
             }
+            yield break;
         }
+#endif
+#endif
     }
 }

@@ -22,77 +22,50 @@ namespace NatCorderWithOpenCVForUnityExample
         // Use this for initialization
         IEnumerator Start ()
         {
-            #if UNITY_ANDROID && !UNITY_EDITOR
-            yield return RequestAndroidPermission ("android.permission.WRITE_EXTERNAL_STORAGE");
-            yield return RequestAndroidPermission ("android.permission.CAMERA");
-            yield return RequestAndroidPermission ("android.permission.RECORD_AUDIO");
-            #endif
-
             exampleTitle.text = "NatCorderWithOpenCVForUnity Example " + Application.version;
 
             versionInfo.text = OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion () + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")";
             versionInfo.text += " / UnityEditor " + Application.unityVersion;
             versionInfo.text += " / ";
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             versionInfo.text += "Editor";
-            #elif UNITY_STANDALONE_WIN
+#elif UNITY_STANDALONE_WIN
             versionInfo.text += "Windows";
-            #elif UNITY_STANDALONE_OSX
+#elif UNITY_STANDALONE_OSX
             versionInfo.text += "Mac OSX";
-            #elif UNITY_STANDALONE_LINUX
+#elif UNITY_STANDALONE_LINUX
             versionInfo.text += "Linux";
-            #elif UNITY_ANDROID
+#elif UNITY_ANDROID
             versionInfo.text += "Android";
-            #elif UNITY_IOS
+#elif UNITY_IOS
             versionInfo.text += "iOS";
-            #elif UNITY_WSA
+#elif UNITY_WSA
             versionInfo.text += "WSA";
-            #elif UNITY_WEBGL
+#elif UNITY_WEBGL
             versionInfo.text += "WebGL";
-            #endif
+#endif
             versionInfo.text += " ";
-            #if ENABLE_MONO
+#if ENABLE_MONO
             versionInfo.text += "Mono";
-            #elif ENABLE_IL2CPP
+#elif ENABLE_IL2CPP
             versionInfo.text += "IL2CPP";
-            #elif ENABLE_DOTNET
+#elif ENABLE_DOTNET
             versionInfo.text += ".NET";
-            #endif
+#endif
 
             scrollRect.verticalNormalizedPosition = verticalNormalizedPosition;
 
-            yield return null;
-        }
 
-        #if UNITY_ANDROID && !UNITY_EDITOR
-        private IEnumerator RequestAndroidPermission(string permission)
-        {
-            if (!RuntimePermissionHelper.HasPermission(permission))
-            {
-                // Permission is not granted
-                // Should we show an explanation?
-                if (RuntimePermissionHelper.ShouldShowRequestPermissionRationale(permission))
-                {
-                    // Show an explanation to the user *asynchronously* -- don't block
-                    // this thread waiting for the user's response! After the user
-                    // sees the explanation, try again to request the permission.
-                    RuntimePermissionHelper.RequestPermission(new string[] { permission });
-                }
-                else
-                {
-                    // No explanation needed; request the permission
-                    RuntimePermissionHelper.RequestPermission(new string[] { permission });
-                }
-            }
-            else
-            {
-                // Permission has already been granted
-            }
+#if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
+            RuntimePermissionHelper runtimePermissionHelper = GetComponent<RuntimePermissionHelper>();
+            yield return runtimePermissionHelper.hasUserAuthorizedCameraPermission();
+            yield return runtimePermissionHelper.hasUserAuthorizedMicrophonePermission();
+            yield return runtimePermissionHelper.hasUserAuthorizedExternalStorageWritePermission();
+#endif
 
-            yield return new WaitForSeconds(0.5f);
+            yield break;
         }
-        #endif
 
         // Update is called once per frame
         void Update ()
