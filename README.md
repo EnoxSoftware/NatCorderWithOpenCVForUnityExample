@@ -6,7 +6,7 @@
 
 ## Environment
 * Anddroid (Pixel) / iOS (iPhone8, iPhone6s)
-* Unity >= 2018.4.7f1(LTS)+
+* Unity >= 2018.3+
 * Scripting backend MONO / IL2CPP
 * [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.6.2 
 * [NatShare - Mobile Sharing API](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705?aid=1011l4ehR) 1.1f3+ 
