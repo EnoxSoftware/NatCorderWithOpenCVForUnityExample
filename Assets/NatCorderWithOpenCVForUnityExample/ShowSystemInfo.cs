@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
@@ -13,111 +12,112 @@ namespace NatCorderWithOpenCVForUnityExample
         Dictionary<string, string> dicSystemInfo;
 
         // Use this for initialization
-        void Start ()
+        void Start()
         {
-            dicSystemInfo = GetSystemInfo ();
+            dicSystemInfo = GetSystemInfo();
 
             systemInfoText.text = systemInfoInputField.text = "### System Info ###" + "\n";
-            Debug.Log ("### System Info ###");
+            Debug.Log("### System Info ###");
 
-            foreach (string key in dicSystemInfo.Keys) {
-                systemInfoText.text = systemInfoInputField.text += key + " = " + dicSystemInfo [key] + "\n";
-                Debug.Log (key + "=" + dicSystemInfo [key]);
+            foreach (string key in dicSystemInfo.Keys)
+            {
+                systemInfoText.text = systemInfoInputField.text += key + " = " + dicSystemInfo[key] + "\n";
+                Debug.Log(key + "=" + dicSystemInfo[key]);
             }
 
             systemInfoText.text = systemInfoInputField.text += "###################" + "\n";
-            Debug.Log ("###################");
+            Debug.Log("###################");
         }
 
         // Update is called once per frame
-        void Update ()
+        void Update()
         {
 
         }
 
-        public Dictionary<string, string> GetSystemInfo ()
+        public Dictionary<string, string> GetSystemInfo()
         {
-            Dictionary<string, string> dicSystemInfo = new Dictionary<string, string> ();
+            Dictionary<string, string> dicSystemInfo = new Dictionary<string, string>();
 
-            dicSystemInfo.Add ("OpenCVForUnity version", OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion () + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")");
-            dicSystemInfo.Add ("Build Unity version", Application.unityVersion);
+            dicSystemInfo.Add("OpenCVForUnity version", OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion() + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")");
+            dicSystemInfo.Add("Build Unity version", Application.unityVersion);
 
-            #if UNITY_EDITOR
-            dicSystemInfo.Add ("Build target", "Editor");
-            #elif UNITY_STANDALONE_WIN
+#if UNITY_EDITOR
+            dicSystemInfo.Add("Build target", "Editor");
+#elif UNITY_STANDALONE_WIN
             dicSystemInfo.Add("Build target", "Windows");
-            #elif UNITY_STANDALONE_OSX
+#elif UNITY_STANDALONE_OSX
             dicSystemInfo.Add("Build target", "Mac OSX");
-            #elif UNITY_STANDALONE_LINUX
+#elif UNITY_STANDALONE_LINUX
             dicSystemInfo.Add("Build target", "Linux");
-            #elif UNITY_ANDROID
+#elif UNITY_ANDROID
             dicSystemInfo.Add("Build target", "Android");
-            #elif UNITY_IOS
+#elif UNITY_IOS
             dicSystemInfo.Add("Build target", "iOS");
-            #elif UNITY_WSA
+#elif UNITY_WSA
             dicSystemInfo.Add("Build target", "WSA");
-            #elif UNITY_WEBGL
+#elif UNITY_WEBGL
             dicSystemInfo.Add("Build target", "WebGL");
-            #else
+#else
             dicSystemInfo.Add("Build target", "");
-            #endif
+#endif
 
-            #if ENABLE_MONO
+#if ENABLE_MONO
             dicSystemInfo.Add("Scripting backend", "Mono");
-            #elif ENABLE_IL2CPP
+#elif ENABLE_IL2CPP
             dicSystemInfo.Add ("Scripting backend", "IL2CPP");
-            #elif ENABLE_DOTNET
+#elif ENABLE_DOTNET
             dicSystemInfo.Add("Scripting backend", ".NET");
-            #else
+#else
             dicSystemInfo.Add("Scripting backend", "");
-            #endif
+#endif
 
-            dicSystemInfo.Add ("operatingSystem", SystemInfo.operatingSystem);
+            dicSystemInfo.Add("operatingSystem", SystemInfo.operatingSystem);
 
-            #if UNITY_IOS
-            #if UNITY_5_4_OR_NEWER
+#if UNITY_IOS
+#if UNITY_5_4_OR_NEWER
             dicSystemInfo.Add("iPhone.generation", UnityEngine.iOS.Device.generation.ToString());
-            #else
+#else
             dicSystemInfo.Add("iPhone.generation", UnityEngine.iPhone.generation.ToString());
-            #endif
-            #else
-            dicSystemInfo.Add ("iPhone.generation", "");
-            #endif
+#endif
+#else
+            dicSystemInfo.Add("iPhone.generation", "");
+#endif
 
             //dicSystemInfo.Add("deviceUniqueIdentifier", SystemInfo.deviceUniqueIdentifier);
-            dicSystemInfo.Add ("deviceModel", SystemInfo.deviceModel);
-            dicSystemInfo.Add ("deviceName", SystemInfo.deviceName);
-            dicSystemInfo.Add ("deviceType", SystemInfo.deviceType.ToString ());
-            dicSystemInfo.Add ("graphicsDeviceName", SystemInfo.graphicsDeviceName);
-            dicSystemInfo.Add ("graphicsDeviceVendor", SystemInfo.graphicsDeviceVendor);
-            dicSystemInfo.Add ("processorType", SystemInfo.processorType);
-            dicSystemInfo.Add ("graphicsMemorySize", SystemInfo.graphicsMemorySize.ToString ());
-            dicSystemInfo.Add ("systemMemorySize", SystemInfo.systemMemorySize.ToString ());
+            dicSystemInfo.Add("deviceModel", SystemInfo.deviceModel);
+            dicSystemInfo.Add("deviceName", SystemInfo.deviceName);
+            dicSystemInfo.Add("deviceType", SystemInfo.deviceType.ToString());
+            dicSystemInfo.Add("graphicsDeviceName", SystemInfo.graphicsDeviceName);
+            dicSystemInfo.Add("graphicsDeviceVendor", SystemInfo.graphicsDeviceVendor);
+            dicSystemInfo.Add("processorType", SystemInfo.processorType);
+            dicSystemInfo.Add("graphicsMemorySize", SystemInfo.graphicsMemorySize.ToString());
+            dicSystemInfo.Add("systemMemorySize", SystemInfo.systemMemorySize.ToString());
 
-            dicSystemInfo.Add ("graphicsDeviceID", SystemInfo.graphicsDeviceID.ToString ());
-            dicSystemInfo.Add ("graphicsDeviceType", SystemInfo.graphicsDeviceType.ToString ());
-            dicSystemInfo.Add ("graphicsDeviceVendorID", SystemInfo.graphicsDeviceVendorID.ToString ());
-            dicSystemInfo.Add ("graphicsDeviceVersion", SystemInfo.graphicsDeviceVersion);
-            dicSystemInfo.Add ("graphicsMultiThreaded", SystemInfo.graphicsMultiThreaded.ToString ());
-            dicSystemInfo.Add ("graphicsShaderLevel", SystemInfo.graphicsShaderLevel.ToString ());
+            dicSystemInfo.Add("graphicsDeviceID", SystemInfo.graphicsDeviceID.ToString());
+            dicSystemInfo.Add("graphicsDeviceType", SystemInfo.graphicsDeviceType.ToString());
+            dicSystemInfo.Add("graphicsDeviceVendorID", SystemInfo.graphicsDeviceVendorID.ToString());
+            dicSystemInfo.Add("graphicsDeviceVersion", SystemInfo.graphicsDeviceVersion);
+            dicSystemInfo.Add("graphicsMultiThreaded", SystemInfo.graphicsMultiThreaded.ToString());
+            dicSystemInfo.Add("graphicsShaderLevel", SystemInfo.graphicsShaderLevel.ToString());
 
-            #if UNITY_5_4_OR_NEWER
-            dicSystemInfo.Add ("copyTextureSupport", SystemInfo.copyTextureSupport.ToString ());
-            #else
+#if UNITY_5_4_OR_NEWER
+            dicSystemInfo.Add("copyTextureSupport", SystemInfo.copyTextureSupport.ToString());
+#else
             dicSystemInfo.Add("copyTextureSupport", "");
-            #endif
+#endif
 
-            dicSystemInfo.Add ("supportsAccelerometer", SystemInfo.supportsAccelerometer.ToString ());
-            dicSystemInfo.Add ("supportsGyroscope", SystemInfo.supportsGyroscope.ToString ());
-            dicSystemInfo.Add ("supportsVibration", SystemInfo.supportsVibration.ToString ());
-            dicSystemInfo.Add ("supportsLocationService", SystemInfo.supportsLocationService.ToString ());
+            dicSystemInfo.Add("supportsAccelerometer", SystemInfo.supportsAccelerometer.ToString());
+            dicSystemInfo.Add("supportsGyroscope", SystemInfo.supportsGyroscope.ToString());
+            dicSystemInfo.Add("supportsVibration", SystemInfo.supportsVibration.ToString());
+            dicSystemInfo.Add("supportsLocationService", SystemInfo.supportsLocationService.ToString());
 
             return dicSystemInfo;
         }
 
-        public void OnBackButtonClick ()
+        public void OnBackButtonClick()
         {
-            SceneManager.LoadScene ("NatCorderWithOpenCVForUnityExample");
+            SceneManager.LoadScene("NatCorderWithOpenCVForUnityExample");
         }
     }
 }

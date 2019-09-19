@@ -1,30 +1,35 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
     public class NatCorderWithOpenCVForUnityExample : MonoBehaviour
     {
+        public static string GetNatCorderVersion()
+        {
+            return "1.6.2";
+        }
+
         public Text exampleTitle;
         public Text versionInfo;
         public ScrollRect scrollRect;
-        static float verticalNormalizedPosition = 1f;
+        private static float verticalNormalizedPosition = 1f;
 
-        void Awake ()
+        void Awake()
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
         }
 
         // Use this for initialization
-        IEnumerator Start ()
+        IEnumerator Start()
         {
             exampleTitle.text = "NatCorderWithOpenCVForUnity Example " + Application.version;
 
-            versionInfo.text = OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion () + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")";
+            versionInfo.text = "NatCorder " + GetNatCorderVersion();
+            versionInfo.text += " / " + OpenCVForUnity.CoreModule.Core.NATIVE_LIBRARY_NAME + " " + OpenCVForUnity.UnityUtils.Utils.getVersion() + " (" + OpenCVForUnity.CoreModule.Core.VERSION + ")";
             versionInfo.text += " / UnityEditor " + Application.unityVersion;
             versionInfo.text += " / ";
 
@@ -68,30 +73,30 @@ namespace NatCorderWithOpenCVForUnityExample
         }
 
         // Update is called once per frame
-        void Update ()
+        void Update()
         {
 
         }
 
-        public void OnScrollRectValueChanged ()
+        public void OnScrollRectValueChanged()
         {
             verticalNormalizedPosition = scrollRect.verticalNormalizedPosition;
         }
 
 
-        public void OnShowSystemInfoButtonClick ()
+        public void OnShowSystemInfoButtonClick()
         {
-            SceneManager.LoadScene ("ShowSystemInfo");
+            SceneManager.LoadScene("ShowSystemInfo");
         }
 
-        public void OnShowLicenseButtonClick ()
+        public void OnShowLicenseButtonClick()
         {
-            SceneManager.LoadScene ("ShowLicense");
+            SceneManager.LoadScene("ShowLicense");
         }
 
-        public void OnVideoRecordingExampleButtonClick ()
+        public void OnVideoRecordingExampleButtonClick()
         {
-            SceneManager.LoadScene ("VideoRecordingExample");
+            SceneManager.LoadScene("VideoRecordingExample");
         }
     }
 }

@@ -10,10 +10,11 @@ namespace NatCorderWithOpenCVForUnityExample
         {
 #if UNITY_IOS && UNITY_2018_1_OR_NEWER
             UserAuthorization mode = UserAuthorization.WebCam;
-            if (!Application.HasUserAuthorization (mode)) {
-                yield return RequestUserAuthorization (mode);
-            }                
-            yield return Application.HasUserAuthorization (mode);    
+            if (!Application.HasUserAuthorization(mode))
+            {
+                yield return RequestUserAuthorization(mode);
+            }
+            yield return Application.HasUserAuthorization(mode);
 #elif UNITY_ANDROID && UNITY_2018_3_OR_NEWER
             string permission = UnityEngine.Android.Permission.Camera;
             if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
@@ -30,10 +31,11 @@ namespace NatCorderWithOpenCVForUnityExample
         {
 #if UNITY_IOS && UNITY_2018_1_OR_NEWER
             UserAuthorization mode = UserAuthorization.Microphone;
-            if (!Application.HasUserAuthorization (mode)) {
-                yield return RequestUserAuthorization (mode);
-            }                
-            yield return Application.HasUserAuthorization (mode);    
+            if (!Application.HasUserAuthorization(mode))
+            {
+                yield return RequestUserAuthorization(mode);
+            }
+            yield return Application.HasUserAuthorization(mode);
 #elif UNITY_ANDROID && UNITY_2018_3_OR_NEWER
             string permission = UnityEngine.Android.Permission.Microphone;
             if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
@@ -80,7 +82,8 @@ namespace NatCorderWithOpenCVForUnityExample
             float timeElapsed = 0;
             while (isUserRequestingPermission)
             {
-                if (timeElapsed > 0.25f){
+                if (timeElapsed > 0.25f)
+                {
                     isUserRequestingPermission = false;
                     yield break;
                 }

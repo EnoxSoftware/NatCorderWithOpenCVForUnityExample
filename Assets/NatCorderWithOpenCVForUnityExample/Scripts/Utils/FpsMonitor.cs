@@ -1,6 +1,5 @@
-﻿using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace NatCorderWithOpenCVForUnityExample
 {
@@ -48,12 +47,13 @@ namespace NatCorderWithOpenCVForUnityExample
         int oldScrWidth;
         int oldScrHeight;
 
-        Dictionary<string, string> outputDict = new Dictionary<string, string> ();
+        Dictionary<string, string> outputDict = new Dictionary<string, string>();
         public string consoleText;
 
         // Use this for initialization
-        void Start () {
-            console_labelStyle = new GUIStyle ();
+        void Start()
+        {
+            console_labelStyle = new GUIStyle();
             console_labelStyle.fontSize = 32;
             console_labelStyle.fontStyle = FontStyle.Normal;
             console_labelStyle.wordWrap = true;
@@ -65,24 +65,29 @@ namespace NatCorderWithOpenCVForUnityExample
         }
 
         // Update is called once per frame
-        void Update () {
+        void Update()
+        {
             tick++;
             elapsed += Time.deltaTime;
-            if (elapsed >= 1f) {
+            if (elapsed >= 1f)
+            {
                 fps = tick / elapsed;
                 tick = 0;
                 elapsed = 0;
             }
         }
 
-        void OnGUI () {
-            if (oldScrWidth != Screen.width || oldScrHeight != Screen.height) {
+        void OnGUI()
+        {
+            if (oldScrWidth != Screen.width || oldScrHeight != Screen.height)
+            {
                 LocateGUI();
             }
             oldScrWidth = Screen.width;
             oldScrHeight = Screen.height;
 
-            if (boxVisible) {
+            if (boxVisible)
+            {
                 GUI.Box(outer, "");
             }
 
@@ -90,45 +95,55 @@ namespace NatCorderWithOpenCVForUnityExample
             {
                 GUILayout.BeginVertical();
                 GUILayout.Label("fps : " + fps.ToString("F1"));
-                foreach (KeyValuePair<string, string> pair in outputDict) {
+                foreach (KeyValuePair<string, string> pair in outputDict)
+                {
                     GUILayout.Label(pair.Key + " : " + pair.Value);
                 }
                 GUILayout.EndVertical();
             }
-            GUILayout.EndArea ();
+            GUILayout.EndArea();
 
-            if (!string.IsNullOrEmpty(consoleText)) {
-                if (boxVisible) {
-                    GUI.Box (console_outer, "");
-                }
-
-                GUILayout.BeginArea (console_inner);
+            if (!string.IsNullOrEmpty(consoleText))
+            {
+                if (boxVisible)
                 {
-                    GUILayout.BeginVertical ();
-                    GUILayout.Label (consoleText, console_labelStyle);
-                    GUILayout.EndVertical ();
+                    GUI.Box(console_outer, "");
                 }
-                GUILayout.EndArea ();
+
+                GUILayout.BeginArea(console_inner);
+                {
+                    GUILayout.BeginVertical();
+                    GUILayout.Label(consoleText, console_labelStyle);
+                    GUILayout.EndVertical();
+                }
+                GUILayout.EndArea();
             }
         }
 
-        public void Add (string key, string value) {
-            if (outputDict.ContainsKey (key)) {
-                outputDict [key] = value;
-            } else {
-                outputDict.Add (key, value);
+        public void Add(string key, string value)
+        {
+            if (outputDict.ContainsKey(key))
+            {
+                outputDict[key] = value;
+            }
+            else
+            {
+                outputDict.Add(key, value);
             }
         }
 
-        public void Remove (string key) {
-            outputDict.Remove (key);
+        public void Remove(string key)
+        {
+            outputDict.Remove(key);
         }
 
-        public void Clear () {
-            outputDict.Clear ();
+        public void Clear()
+        {
+            outputDict.Clear();
         }
-            
-        public void LocateGUI() {
+
+        public void LocateGUI()
+        {
             x = GetAlignedX(alignment, boxWidth);
             y = GetAlignedY(alignment, boxHeight);
             outer = new Rect(x, y, boxWidth, boxHeight);
@@ -136,33 +151,37 @@ namespace NatCorderWithOpenCVForUnityExample
 
             console_x = GetAlignedX(Alignment.LeftBottom, Screen.width);
             console_y = GetAlignedY(Alignment.LeftBottom, consoleHeight);
-            console_outer = new Rect(console_x, console_y, Screen.width - offset.x*2, consoleHeight);
-            console_inner = new Rect(console_x + padding.x, console_y + padding.y, Screen.width - offset.x*2 - padding.x, consoleHeight);
+            console_outer = new Rect(console_x, console_y, Screen.width - offset.x * 2, consoleHeight);
+            console_inner = new Rect(console_x + padding.x, console_y + padding.y, Screen.width - offset.x * 2 - padding.x, consoleHeight);
         }
-            
-        float GetAlignedX(Alignment anchor, float w) {
-            switch (anchor) {
-            default:
-            case Alignment.LeftTop:
-            case Alignment.LeftBottom:
-                return offset.x;
 
-            case Alignment.RightTop:
-            case Alignment.RightBottom:
-                return Screen.width - w - offset.x;
+        float GetAlignedX(Alignment anchor, float w)
+        {
+            switch (anchor)
+            {
+                default:
+                case Alignment.LeftTop:
+                case Alignment.LeftBottom:
+                    return offset.x;
+
+                case Alignment.RightTop:
+                case Alignment.RightBottom:
+                    return Screen.width - w - offset.x;
             }
         }
 
-        float GetAlignedY(Alignment anchor, float h) {
-            switch (anchor) {
-            default:
-            case Alignment.LeftTop:
-            case Alignment.RightTop:
-                return offset.y;
+        float GetAlignedY(Alignment anchor, float h)
+        {
+            switch (anchor)
+            {
+                default:
+                case Alignment.LeftTop:
+                case Alignment.RightTop:
+                    return offset.y;
 
-            case Alignment.LeftBottom:
-            case Alignment.RightBottom:
-                return Screen.height - h - offset.y;
+                case Alignment.LeftBottom:
+                case Alignment.RightBottom:
+                    return Screen.height - h - offset.y;
             }
         }
     }
