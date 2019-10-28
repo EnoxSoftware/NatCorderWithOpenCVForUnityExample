@@ -158,6 +158,7 @@ namespace NatCorderWithOpenCVForUnityExample
         string settingInfo1 = "";
         string settingInfo2 = "";
         string settingInfoGIF = "";
+        string settingInfoJPG = "";
         Scalar textColor = new Scalar(255, 255, 255, 255);
         Point textPos = new Point();
 
@@ -301,6 +302,11 @@ namespace NatCorderWithOpenCVForUnityExample
                         textPos.y = rgbaMat.rows() - 30;
                         Imgproc.putText(rgbaMat, settingInfoGIF, textPos, Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, textColor, 1, Imgproc.LINE_AA, false);
                     }
+                    else if (container == ContainerPreset.JPG)
+                    {
+                        textPos.y = rgbaMat.rows() - 30;
+                        Imgproc.putText(rgbaMat, settingInfoJPG, textPos, Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, textColor, 1, Imgproc.LINE_AA, false);
+                    }
                 }
 
                 // Restore the coordinate system of the image by OpenCV's Flip function.
@@ -370,6 +376,15 @@ namespace NatCorderWithOpenCVForUnityExample
                     recordingWidth,
                     recordingHeight,
                     frameDuration,
+                    OnVideo
+                );
+                recordEveryNthFrame = 5;
+            }
+            else if (container == ContainerPreset.JPG) // macOS and Windows platform only.
+            {
+                videoRecorder = new JPGRecorder(
+                    recordingWidth,
+                    recordingHeight,
                     OnVideo
                 );
                 recordEveryNthFrame = 5;
@@ -580,6 +595,7 @@ namespace NatCorderWithOpenCVForUnityExample
             settingInfo1 = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FPS:" + videoFramerate;
             settingInfo2 = "- ASR:" + audioSampleRate + " ACh:" + audioChannelCount + " VBR:" + videoBitrate + " MicFreq:" + (int)microphoneFrequency;
             settingInfoGIF = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FrameDur:" + frameDuration;
+            settingInfoJPG = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight;
         }
 
         /// <summary>
@@ -654,6 +670,14 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public void OnContainerDropdownValueChanged(int result)
         {
+#if !(UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_WIN || UNITY_EDITOR_OSX)
+            if ((ContainerPreset)(result) == ContainerPreset.JPG)
+            {
+                containerDropdown.value = (int)container;
+                return;
+            }
+#endif
+
             if ((int)container != result)
             {
                 container = (ContainerPreset)(result);
@@ -735,6 +759,11 @@ namespace NatCorderWithOpenCVForUnityExample
             if (System.IO.Path.GetExtension(videoPath) == ".gif")
             {
                 Debug.LogWarning("GIF format video playback is not supported.");
+                return;
+            }
+            if (System.IO.Path.GetExtension(videoPath) == "")
+            {
+                Debug.LogWarning("JPG format video playback is not supported.");
                 return;
             }
 
@@ -840,6 +869,7 @@ namespace NatCorderWithOpenCVForUnityExample
             MP4,
             HEVC,
             GIF,
+            JPG,
         }
 
         public enum MicrophoneFrequencyPreset
