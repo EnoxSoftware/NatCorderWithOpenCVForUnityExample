@@ -19,14 +19,14 @@ namespace NatCorderWithOpenCVForUnityExample
         Mat kernel_dilate;
         Mat kernel_erode;
         Size blurSize;
-        int brackThresh;
+        int blackThresh;
         bool drawMainLine;
         bool useNoiseFilter;
 
 
-        public ComicFilter(int brackThresh = 60, int grayThresh = 120, int thickness = 5, bool useNoiseFilter = true)
+        public ComicFilter(int blackThresh = 60, int grayThresh = 120, int thickness = 5, bool useNoiseFilter = true)
         {
-            this.brackThresh = brackThresh;
+            this.blackThresh = blackThresh;
             this.drawMainLine = (thickness != 0);
             this.useNoiseFilter = useNoiseFilter;
 
@@ -34,7 +34,7 @@ namespace NatCorderWithOpenCVForUnityExample
             byte[] lutArray = new byte[256];
             for (int i = 0; i < lutArray.Length; i++)
             {
-                if (brackThresh <= i && i < grayThresh)
+                if (blackThresh <= i && i < grayThresh)
                     lutArray[i] = 255;
             }
             Utils.copyToMat(lutArray, grayLUT);
@@ -108,7 +108,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
 
             // binarize.
-            Imgproc.threshold(grayMat, grayDstMat, brackThresh, 255.0, Imgproc.THRESH_BINARY);
+            Imgproc.threshold(grayMat, grayDstMat, blackThresh, 255.0, Imgproc.THRESH_BINARY);
 
             // draw striped screentone.
             Core.LUT(grayMat, grayLUT, maskMat);

@@ -1,7 +1,7 @@
 using NatCorder;
 using NatCorder.Clocks;
 using NatCorder.Inputs;
-using NatShareU;
+using NatShare;
 using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
 using OpenCVForUnity.UnityUtils;
@@ -809,11 +809,16 @@ namespace NatCorderWithOpenCVForUnityExample
             if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
                 return;
 
-            NatShare.Share(videoPath,
-                () =>
+            using (var payload = new SharePayload("NatCorderWithOpenCVForUnityExample",
+                completionHandler: () =>
                 {
-                    Debug.Log("sharing is complete.");
-                });
+                    Debug.Log("User shared video!");
+                }
+            ))
+            {
+                payload.AddText("User shared video!");
+                payload.AddMedia(videoPath);
+            }
         }
 
         /// <summary>
@@ -826,7 +831,15 @@ namespace NatCorderWithOpenCVForUnityExample
             if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
                 return;
 
-            NatShare.SaveToCameraRoll(videoPath, "NatCorderWithOpenCVForUnityExample");
+            using (var payload = new SavePayload("NatCorderWithOpenCVForUnityExample",
+                completionHandler: () =>
+                {
+                    Debug.Log("User saved video to camera roll!");
+                }
+            ))
+            {
+                payload.AddMedia(videoPath);
+            }
         }
 
         public enum ResolutionPreset
