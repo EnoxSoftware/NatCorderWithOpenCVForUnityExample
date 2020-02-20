@@ -315,7 +315,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 // Record frames
                 if (videoRecorder != null && isVideoRecording && frameCount++ % recordEveryNthFrame == 0)
                 {
-                    videoRecorder.CommitFrame((IntPtr)rgbaMat.dataAddr(), recordingClock.Timestamp);
+                    videoRecorder.CommitFrame((IntPtr)rgbaMat.dataAddr(), recordingClock.timestamp);
                 }
             }
 
@@ -353,8 +353,7 @@ namespace NatCorderWithOpenCVForUnityExample
                     recordingHeight,
                     videoFramerate,
                     audioSampleRate,
-                    audioChannelCount,
-                    OnVideo
+                    audioChannelCount
                 );
                 recordEveryNthFrame = 1;
             }
@@ -365,8 +364,7 @@ namespace NatCorderWithOpenCVForUnityExample
                     recordingHeight,
                     videoFramerate,
                     audioSampleRate,
-                    audioChannelCount,
-                    OnVideo
+                    audioChannelCount
                 );
                 recordEveryNthFrame = 1;
             }
@@ -375,8 +373,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 videoRecorder = new GIFRecorder(
                     recordingWidth,
                     recordingHeight,
-                    frameDuration,
-                    OnVideo
+                    frameDuration
                 );
                 recordEveryNthFrame = 5;
             }
@@ -384,8 +381,7 @@ namespace NatCorderWithOpenCVForUnityExample
             {
                 videoRecorder = new JPGRecorder(
                     recordingWidth,
-                    recordingHeight,
-                    OnVideo
+                    recordingHeight
                 );
                 recordEveryNthFrame = 5;
             }
@@ -411,24 +407,25 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void StartMicrophone()
         {
-#if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
             // Create a microphone clip
-            microphoneSource.clip = Microphone.Start(null, true, (int)MAX_RECORDING_TIME, (int)microphoneFrequency);
-            while (Microphone.GetPosition(null) <= 0)
-                ;
-            // Play through audio source
-            microphoneSource.timeSamples = Microphone.GetPosition(null);
             microphoneSource.loop = true;
+            microphoneSource.bypassEffects =
+            microphoneSource.bypassListenerEffects = false;
+            microphoneSource.clip = Microphone.Start(null, true, (int)MAX_RECORDING_TIME, (int)microphoneFrequency);
+            while (Microphone.GetPosition(null) <= 0) { }
             microphoneSource.Play();
-#endif
         }
 
-        private void StopRecording()
+        private async void StopRecording()
         {
             if (!isVideoRecording)
                 return;
 
+            isVideoRecording = false;
+
             Debug.Log("StopRecording ()");
+
+            StopCoroutine("Countdown");
             if (fpsMonitor != null)
             {
                 fpsMonitor.consoleText = "";
@@ -442,22 +439,28 @@ namespace NatCorderWithOpenCVForUnityExample
             }
 
             // Stop recording
-            videoRecorder.Dispose();
-
-            StopCoroutine("Countdown");
+            try
+            {
+                var path = await videoRecorder.FinishWriting();
+                videoPath = path;
+                Debug.Log("Saved recording to: " + videoPath);
+                savePathInputField.text = videoPath;
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+                savePathInputField.text = e.Message;
+            }
 
             ShowAllVideoUI();
             recordVideoButton.GetComponentInChildren<UnityEngine.UI.Text>().color = Color.black;
-
-            isVideoRecording = false;
         }
 
         private void StopMicrophone()
         {
-#if !UNITY_WEBGL || UNITY_EDITOR
-            Microphone.End(null);
+            // Stop microphone
             microphoneSource.Stop();
-#endif
+            Microphone.End(null);
         }
 
         private IEnumerator Countdown()
@@ -480,15 +483,6 @@ namespace NatCorderWithOpenCVForUnityExample
             }
 
             StopRecording();
-        }
-
-        private void OnVideo(string path)
-        {
-            Debug.Log("Saved recording to: " + path);
-
-            videoPath = path;
-
-            savePathInputField.text = videoPath;
         }
 
         private void PlayVideo(string path)
@@ -682,12 +676,6 @@ namespace NatCorderWithOpenCVForUnityExample
             {
                 container = (ContainerPreset)(result);
             }
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-            // WebGL platform only supports MP4 format.
-            containerDropdown.value = (int)ContainerPreset.MP4;
-            container = ContainerPreset.MP4;
-#endif
         }
 
         /// <summary>
@@ -768,13 +756,8 @@ namespace NatCorderWithOpenCVForUnityExample
             }
 
             // Playback the video
-#if UNITY_IOS
-            PlayVideo("file://" + videoPath);
-#elif UNITY_WEBGL
-            Debug.Log("Please open the video URL (" + videoPath + ") in a new browser tab.");
-#else
-            PlayVideo(videoPath);
-#endif
+            var prefix = Application.platform == RuntimePlatform.IPhonePlayer ? "file://" : "";
+            PlayVideo(prefix + videoPath);
         }
 
         /// <summary>
@@ -790,10 +773,9 @@ namespace NatCorderWithOpenCVForUnityExample
             // Playback the video
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.OpenWithDefaultApp(videoPath);
-#elif UNITY_IOS
-            Handheld.PlayFullScreenMovie("file://" + videoPath);
-#elif UNITY_ANDROID
-            Handheld.PlayFullScreenMovie(videoPath);
+#elif UNITY_ANDROID || UNITY_IOS
+            var prefix = Application.platform == RuntimePlatform.IPhonePlayer ? "file://" : "";
+            Handheld.PlayFullScreenMovie(prefix + videoPath);
 #else
             Debug.LogWarning("Full-screen video playback is not supported on this platform.");
 #endif

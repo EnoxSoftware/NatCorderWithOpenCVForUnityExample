@@ -1,6 +1,6 @@
 ﻿using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
-using OpenCVForUnity.UnityUtils;
+using OpenCVForUnity.UtilsModule;
 using System;
 
 namespace NatCorderWithOpenCVForUnityExample
@@ -37,7 +37,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 if (blackThresh <= i && i < grayThresh)
                     lutArray[i] = 255;
             }
-            Utils.copyToMat(lutArray, grayLUT);
+            MatUtils.copyToMat(lutArray, grayLUT);
 
             if (drawMainLine)
             {
@@ -57,7 +57,7 @@ namespace NatCorderWithOpenCVForUnityExample
                     contrastAdjustmentsLUTArray[i] = (a > byte.MaxValue) ? (byte)255 : (byte)a;
 
                 }
-                Utils.copyToMat(contrastAdjustmentsLUTArray, contrastAdjustmentsLUT);
+                MatUtils.copyToMat(contrastAdjustmentsLUTArray, contrastAdjustmentsLUT);
             }
         }
 
