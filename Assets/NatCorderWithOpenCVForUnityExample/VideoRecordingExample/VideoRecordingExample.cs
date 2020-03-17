@@ -8,6 +8,8 @@ using OpenCVForUnity.UnityUtils;
 using OpenCVForUnity.UnityUtils.Helper;
 using System;
 using System.Collections;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -128,8 +130,9 @@ namespace NatCorderWithOpenCVForUnityExample
 
         IClock recordingClock;
 
-        const float MAX_RECORDING_TIME = 10f;
-        // Seconds
+        CancellationTokenSource cancellationTokenSource;
+
+        const int MAX_RECORDING_TIME = 10; // Seconds
 
         string videoPath = "";
 
@@ -138,6 +141,8 @@ namespace NatCorderWithOpenCVForUnityExample
         bool isVideoPlaying;
 
         bool isVideoRecording;
+
+        bool isFinishWriting;
 
         int frameCount;
 
@@ -253,7 +258,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log("OnWebCamTextureToMatHelperDisposed");
 
-            StopRecording();
+            CancelRecording();
             StopVideo();
 
             if (texture != null)
@@ -283,7 +288,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 if (applyComicFilter)
                     comicFilter.Process(rgbaMat, rgbaMat);
 
-                if (isVideoRecording)
+                if (isVideoRecording && !isFinishWriting)
                 {
                     textPos.x = 5;
                     textPos.y = rgbaMat.rows() - 70;
@@ -313,7 +318,7 @@ namespace NatCorderWithOpenCVForUnityExample
                 Utils.fastMatToTexture2D(rgbaMat, texture);
 
                 // Record frames
-                if (videoRecorder != null && isVideoRecording && frameCount++ % recordEveryNthFrame == 0)
+                if (videoRecorder != null && (isVideoRecording && !isFinishWriting) && frameCount++ % recordEveryNthFrame == 0)
                 {
                     videoRecorder.CommitFrame((IntPtr)rgbaMat.dataAddr(), recordingClock.timestamp);
                 }
@@ -325,9 +330,9 @@ namespace NatCorderWithOpenCVForUnityExample
             }
         }
 
-        private void StartRecording()
+        private async Task StartRecording()
         {
-            if (isVideoPlaying || isVideoRecording)
+            if (isVideoPlaying || isVideoRecording || isFinishWriting)
                 return;
 
             Debug.Log("StartRecording ()");
@@ -344,7 +349,7 @@ namespace NatCorderWithOpenCVForUnityExample
             videoBitrate = (int)(960 * 540 * 11.4f);
             frameDuration = 0.1f;
 
-            // Start recording
+            // Create video recorder
             recordingClock = new RealtimeClock();
             if (container == ContainerPreset.MP4)
             {
@@ -387,14 +392,10 @@ namespace NatCorderWithOpenCVForUnityExample
             }
             frameCount = 0;
 
-            // Start microphone and create audio input
-            if (recordMicrophoneAudio)
-            {
-                StartMicrophone();
-                audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
-            }
 
-            StartCoroutine("Countdown");
+
+            // Start recording
+            isVideoRecording = true;
 
             HideAllVideoUI();
             recordVideoButton.interactable = true;
@@ -402,34 +403,59 @@ namespace NatCorderWithOpenCVForUnityExample
 
             CreateSettingInfo();
 
-            isVideoRecording = true;
+            // Start microphone and create audio input
+            if (recordMicrophoneAudio)
+            {
+                await StartMicrophone();
+                audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
+            }
+
+            // Start countdown
+            cancellationTokenSource = new CancellationTokenSource();
+            try
+            {
+                Debug.Log("Countdown start.");
+                await CountdownAsync(
+                    sec =>
+                    {
+                        string str = "Recording";
+                        for (int i = 0; i < sec; i++)
+                        {
+                            str += ".";
+                        }
+
+                        if (fpsMonitor != null) fpsMonitor.consoleText = str;
+
+                    }, MAX_RECORDING_TIME, cancellationTokenSource.Token);
+                Debug.Log("Countdown end.");
+            }
+            catch (OperationCanceledException e)
+            {
+                if (e.CancellationToken == cancellationTokenSource.Token)
+                {
+                    Debug.Log("Countdown canceled.");
+                }
+            }
+            cancellationTokenSource.Dispose();
+            cancellationTokenSource = null;
+
+            if (this != null && isActiveAndEnabled)
+                await FinishRecording();
         }
 
-        private void StartMicrophone()
+        private void CancelRecording()
         {
-            // Create a microphone clip
-            microphoneSource.loop = true;
-            microphoneSource.bypassEffects =
-            microphoneSource.bypassListenerEffects = false;
-            microphoneSource.clip = Microphone.Start(null, true, (int)MAX_RECORDING_TIME, (int)microphoneFrequency);
-            while (Microphone.GetPosition(null) <= 0) { }
-            microphoneSource.Play();
-        }
-
-        private async void StopRecording()
-        {
-            if (!isVideoRecording)
+            if (!isVideoRecording || isFinishWriting)
                 return;
 
-            isVideoRecording = false;
+            if (cancellationTokenSource != null)
+                cancellationTokenSource.Cancel(true);
+        }
 
-            Debug.Log("StopRecording ()");
-
-            StopCoroutine("Countdown");
-            if (fpsMonitor != null)
-            {
-                fpsMonitor.consoleText = "";
-            }
+        private async Task FinishRecording()
+        {
+            if (!isVideoRecording || isFinishWriting)
+                return;
 
             // Stop the microphone if we used it for recording
             if (recordMicrophoneAudio)
@@ -438,7 +464,10 @@ namespace NatCorderWithOpenCVForUnityExample
                 audioInput.Dispose();
             }
 
+            if (fpsMonitor != null) fpsMonitor.consoleText = "FinishWriting...";
+
             // Stop recording
+            isFinishWriting = true;
             try
             {
                 var path = await videoRecorder.FinishWriting();
@@ -446,14 +475,42 @@ namespace NatCorderWithOpenCVForUnityExample
                 Debug.Log("Saved recording to: " + videoPath);
                 savePathInputField.text = videoPath;
             }
-            catch (Exception e)
+            catch (ApplicationException e)
             {
                 Debug.Log(e.Message);
                 savePathInputField.text = e.Message;
             }
+            isFinishWriting = false;
+
+            if (fpsMonitor != null) fpsMonitor.consoleText = "";
 
             ShowAllVideoUI();
             recordVideoButton.GetComponentInChildren<UnityEngine.UI.Text>().color = Color.black;
+
+            isVideoRecording = false;
+        }
+
+        private Task<bool> StartMicrophone()
+        {
+            var task = new TaskCompletionSource<bool>();
+            StartCoroutine(CreateMicrophone(granted =>
+            {
+                microphoneSource.Play();
+                task.SetResult(granted);
+            }));
+
+            return task.Task;
+        }
+
+        private IEnumerator CreateMicrophone(Action<bool> completionHandler)
+        {
+            // Create a microphone clip
+            microphoneSource.loop = true;
+            microphoneSource.bypassEffects =
+            microphoneSource.bypassListenerEffects = false;
+            microphoneSource.clip = Microphone.Start(null, true, MAX_RECORDING_TIME, (int)microphoneFrequency);
+            yield return new WaitUntil(() => Microphone.GetPosition(null) > 0);
+            completionHandler(true);
         }
 
         private void StopMicrophone()
@@ -463,31 +520,22 @@ namespace NatCorderWithOpenCVForUnityExample
             Microphone.End(null);
         }
 
-        private IEnumerator Countdown()
+        private async Task CountdownAsync(Action<int> countdownHandler, int sec = 10, CancellationToken cancellationToken = default(CancellationToken))
         {
-            float startTime = Time.time;
-            while ((Time.time - startTime) < MAX_RECORDING_TIME)
+            for (int i = sec; i > 0; i--)
             {
-
-                if (fpsMonitor != null)
-                {
-                    string str = "Recording";
-                    for (int i = 0; i < (int)(MAX_RECORDING_TIME - (Time.time - startTime)); i++)
-                    {
-                        str += ".";
-                    }
-                    fpsMonitor.consoleText = str;
-                }
-
-                yield return new WaitForSeconds(0.5f);
+                cancellationToken.ThrowIfCancellationRequested();
+                countdownHandler(i);
+                await Task.Delay(1000, cancellationToken);
             }
-
-            StopRecording();
+            cancellationToken.ThrowIfCancellationRequested();
+            countdownHandler(0);
         }
+
 
         private void PlayVideo(string path)
         {
-            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(path))
+            if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(path))
                 return;
 
             Debug.Log("PlayVideo ()");
@@ -517,7 +565,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void PrepareCompleted(VideoPlayer vp)
         {
-            Debug.Log("PrepareCompleted");
+            Debug.Log("PrepareCompleted ()");
 
             vp.prepareCompleted -= PrepareCompleted;
 
@@ -528,9 +576,7 @@ namespace NatCorderWithOpenCVForUnityExample
 
         private void EndReached(VideoPlayer vp)
         {
-            Debug.Log("EndReached");
-
-            videoPlayer.loopPointReached -= EndReached;
+            Debug.Log("EndReached ()");
 
             StopVideo();
         }
@@ -542,16 +588,19 @@ namespace NatCorderWithOpenCVForUnityExample
 
             Debug.Log("StopVideo ()");
 
+            videoPlayer.loopPointReached -= EndReached;
+
             if (videoPlayer.isPlaying)
                 videoPlayer.Stop();
 
-            gameObject.GetComponent<Renderer>().sharedMaterial.mainTexture = texture;
-
-            webCamTextureToMatHelper.Play();
-
             isVideoPlaying = false;
 
-            ShowAllVideoUI();
+            if (this != null && isActiveAndEnabled)
+            {
+                gameObject.GetComponent<Renderer>().sharedMaterial.mainTexture = texture;
+                webCamTextureToMatHelper.Play();
+                ShowAllVideoUI();
+            }
         }
 
         private void ShowAllVideoUI()
@@ -717,20 +766,20 @@ namespace NatCorderWithOpenCVForUnityExample
         /// <summary>
         /// Raises the record video button click event.
         /// </summary>
-        public void OnRecordVideoButtonClick()
+        public async void OnRecordVideoButtonClick()
         {
             Debug.Log("OnRecordVideoButtonClick ()");
 
             if (isVideoPlaying)
                 return;
 
-            if (isVideoRecording)
+            if (!isVideoRecording && !isFinishWriting)
             {
-                StopRecording();
+                await StartRecording();
             }
             else
             {
-                StartRecording();
+                CancelRecording();
             }
         }
 
@@ -741,7 +790,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log("OnPlayVideoButtonClick ()");
 
-            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
+            if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
             if (System.IO.Path.GetExtension(videoPath) == ".gif")
@@ -767,7 +816,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log("OnPlayVideoFullScreenButtonClick ()");
 
-            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
+            if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
             // Playback the video
@@ -788,7 +837,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log("OnShareButtonClick ()");
 
-            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
+            if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
             using (var payload = new SharePayload("NatCorderWithOpenCVForUnityExample",
@@ -810,7 +859,7 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             Debug.Log("OnSaveToCameraRollButtonClick ()");
 
-            if (isVideoPlaying || isVideoRecording || string.IsNullOrEmpty(videoPath))
+            if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
             using (var payload = new SavePayload("NatCorderWithOpenCVForUnityExample",
