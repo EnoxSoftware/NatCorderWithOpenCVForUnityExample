@@ -8,8 +8,8 @@
 * Anddroid (Pixel) / iOS (iPhone8, iPhone6s)
 * Unity >= 2018.3+ (Unity 2019.2 or higher is recommended due to [the Unity issue](https://issuetracker.unity3d.com/issues/android-video-player-cannot-play-files-located-in-the-persistent-data-directory-on-android-10?_ga=2.235187912.870386860.1577555830-195736471.1541757609))
 * Scripting backend MONO / IL2CPP
-* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.7.0+ 
-* [NatShare - Mobile Sharing API](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705?aid=1011l4ehR) 1.2.1+ 
+* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.7.1+ 
+* [NatShare - Mobile Sharing API](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705?aid=1011l4ehR) 1.2.2+ 
 * [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.3.8+ 
 
 
@@ -34,6 +34,10 @@
     * Set the reason for accessing the camera in "cameraUsageDescription".
 1. Add the "Assets/NatCorderWithOpenCVForUnityExample/*.unity" files to the "Scenes In Build" list in the "Build Settings" window.
 1. Build and Deploy to Android and iOS.
+
+
+## Android Instructions
+Build requires Android SDK Platform 29 or higher.
 
 
 ## iOS Instructions

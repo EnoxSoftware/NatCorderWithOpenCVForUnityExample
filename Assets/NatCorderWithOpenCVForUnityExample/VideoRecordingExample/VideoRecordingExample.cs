@@ -1,7 +1,7 @@
-using NatCorder;
-using NatCorder.Clocks;
-using NatCorder.Inputs;
-using NatShare;
+using NatSuite.Recorders;
+using NatSuite.Recorders.Clocks;
+using NatSuite.Recorders.Inputs;
+using NatSuite.Sharing;
 using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
 using OpenCVForUnity.UnityUtils;
@@ -833,43 +833,79 @@ namespace NatCorderWithOpenCVForUnityExample
         /// <summary>
         /// Raises the share button click event.
         /// </summary>
-        public void OnShareButtonClick()
+        public async void OnShareButtonClick()
         {
             Debug.Log("OnShareButtonClick ()");
 
             if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
-            using (var payload = new SharePayload("NatCorderWithOpenCVForUnityExample",
-                completionHandler: () =>
-                {
-                    Debug.Log("User shared video!");
-                }
-            ))
+            var mes = "";
+
+#if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
+            try
             {
-                payload.AddText("User shared video!");
-                payload.AddMedia(videoPath);
+                var success = await new SharePayload()
+                    .AddText("User shared video! [NatCorderWithOpenCVForUnity Example](" + NatCorderWithOpenCVForUnityExample.GetNatCorderVersion() + ")")
+                    .AddMedia(videoPath)
+                    .Commit();
+
+                mes = $"Successfully shared items: {success}";
+            }
+            catch (ApplicationException e)
+            {
+                mes = e.Message;
+            }
+#else
+            mes = "NatShare Error: SharePayload is not supported on this platform";
+#endif
+
+            Debug.Log(mes);
+
+            if (fpsMonitor != null)
+            {
+                fpsMonitor.consoleText = mes;
+                await Task.Delay(2000);
+                fpsMonitor.consoleText = "";
             }
         }
 
         /// <summary>
         /// Raises the save to camera roll button click event.
         /// </summary>
-        public void OnSaveToCameraRollButtonClick()
+        public async void OnSaveToCameraRollButtonClick()
         {
             Debug.Log("OnSaveToCameraRollButtonClick ()");
 
             if (isVideoPlaying || isVideoRecording || isFinishWriting || string.IsNullOrEmpty(videoPath))
                 return;
 
-            using (var payload = new SavePayload("NatCorderWithOpenCVForUnityExample",
-                completionHandler: () =>
-                {
-                    Debug.Log("User saved video to camera roll!");
-                }
-            ))
+            var mes = "";
+
+#if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
+            try
             {
-                payload.AddMedia(videoPath);
+                var success = await new SavePayload("NatCorderWithOpenCVForUnityExample")
+                    .AddMedia(videoPath)
+                    .Commit();
+
+                mes = $"Successfully saved items: {success}";
+            }
+            catch (ApplicationException e)
+            {
+                mes = e.Message;
+            }
+#else
+            mes = "NatShare Error: SavePayload is not supported on this platform";
+#endif
+
+            Debug.Log(mes);
+
+            if (fpsMonitor != null)
+            {
+                fpsMonitor.consoleText = mes;
+                await Task.Delay(2000);
+                fpsMonitor.consoleText = "";
             }
         }
 
