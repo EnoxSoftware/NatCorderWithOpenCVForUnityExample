@@ -32,6 +32,7 @@
 1. Change the "Minimum API Level" to 24 or higher in the "Player Settings (Androd)" Inspector.
 1. Change the "Target minimum iOS Version" to 11 or higher in the "Player Settings (iOS)" Inspector.
     * Set the reason for accessing the camera in "cameraUsageDescription".
+    * Set the reason for accessing the microphone in "microphoneUsageDescription".
 1. Add the "Assets/NatCorderWithOpenCVForUnityExample/*.unity" files to the "Scenes In Build" list in the "Build Settings" window.
 1. Build and Deploy to Android and iOS.
 
