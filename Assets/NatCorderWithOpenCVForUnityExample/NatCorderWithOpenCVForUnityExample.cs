@@ -9,7 +9,7 @@ namespace NatCorderWithOpenCVForUnityExample
     {
         public static string GetNatCorderVersion()
         {
-            return "1.7.1";
+            return "1.7.3";
         }
 
         public Text exampleTitle;
