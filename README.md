@@ -5,12 +5,12 @@
 
 
 ## Environment
-* Anddroid (Pixel) / iOS (iPhone8, iPhone6s)
-* Unity >= 2018.4.28f1+ (Unity 2019.2 or higher is recommended due to [the Unity issue](https://issuetracker.unity3d.com/issues/android-video-player-cannot-play-files-located-in-the-persistent-data-directory-on-android-10?_ga=2.235187912.870386860.1577555830-195736471.1541757609))
+* Anddroid (Pixel) / iOS (iPhoneSE)
+* Unity >= 2019.4.26f1+
 * Scripting backend MONO / IL2CPP
-* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.7.3+ 
-* [NatShare - Mobile Sharing API](https://assetstore.unity.com/packages/tools/integration/natshare-mobile-sharing-api-117705?aid=1011l4ehR) 1.2.3+ 
-* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.1+ 
+* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.8.0+ 
+* [NatShare - Mobile Sharing API](https://github.com/natsuite/NatShare) 1.2.5+ 
+* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.4+ 
 
 
 ## Demo
@@ -25,12 +25,12 @@
 1. Download the latest release unitypackage. [NatCorderWithOpenCVForUnityExample.unitypackage](https://github.com/EnoxSoftware/NatCorderWithOpenCVForUnityExample/releases)
 1. Create a new project. (NatCorderWithOpenCVForUnityExample)
 1. Import NatCorder.
-1. Import NatShare.
+1. Import NatShare. (NatShare should be installed using the Unity Package Manager. See [README](https://github.com/natsuite/NatShare))
 1. Import OpenCVForUnity.
     * Setup the OpenCVForUnity. (Tools > OpenCV for Unity > Set Plugin Import Settings)
 1. Import the NatCorderWithOpenCVForUnityExample.unitypackage.
 1. Change the "Minimum API Level" to 24 or higher in the "Player Settings (Androd)" Inspector.
-1. Change the "Target minimum iOS Version" to 11 or higher in the "Player Settings (iOS)" Inspector.
+1. Change the "Target minimum iOS Version" to 13 or higher in the "Player Settings (iOS)" Inspector.
     * Set the reason for accessing the camera in "cameraUsageDescription".
     * Set the reason for accessing the microphone in "microphoneUsageDescription".
 1. Add the "Assets/NatCorderWithOpenCVForUnityExample/*.unity" files to the "Scenes In Build" list in the "Build Settings" window.

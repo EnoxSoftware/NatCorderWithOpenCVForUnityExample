@@ -6,6 +6,7 @@ using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
 using OpenCVForUnity.UnityUtils;
 using OpenCVForUnity.UnityUtils.Helper;
+using OpenCVForUnity.UtilsModule;
 using System;
 using System.Collections;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace NatCorderWithOpenCVForUnityExample
     /// <summary>
     /// VideoRecording Example
     /// </summary>
-    [RequireComponent(typeof(WebCamTextureToMatHelper), typeof(AudioSource), typeof(VideoPlayer))]
+    [RequireComponent(typeof(WebCamTextureToMatHelper))]
     public class VideoRecordingExample : MonoBehaviour
     {
         /// <summary>
@@ -56,6 +57,26 @@ namespace NatCorderWithOpenCVForUnityExample
         /// </summary>
         public Toggle applyComicFilterToggle;
 
+        /// <summary>
+        /// The video bitrate.
+        /// </summary>
+        public VideoBitRatePreset videoBitRate = VideoBitRatePreset._10Mbps;
+
+        /// <summary>
+        /// The video bitrate frequency.
+        /// </summary>
+        public Dropdown videoBitRateDropdown;
+
+        /// <summary>
+        /// The audio bitrate.
+        /// </summary>
+        public AudioBitRatePreset audioBitRate = AudioBitRatePreset._64Kbps;
+
+        /// <summary>
+        /// The audio bitrate frequency.
+        /// </summary>
+        public Dropdown audioBitRateDropdown;
+
         [Header("Microphone")]
 
         /// <summary>
@@ -67,16 +88,6 @@ namespace NatCorderWithOpenCVForUnityExample
         /// The record microphone audio toggle.
         /// </summary>
         public Toggle recordMicrophoneAudioToggle;
-
-        /// <summary>
-        /// The microphone frequency.
-        /// </summary>
-        public MicrophoneFrequencyPreset microphoneFrequency = MicrophoneFrequencyPreset._48000;
-
-        /// <summary>
-        /// The microphone frequency.
-        /// </summary>
-        public Dropdown microphoneFrequencyDropdown;
 
         [Space(20)]
 
@@ -153,7 +164,6 @@ namespace NatCorderWithOpenCVForUnityExample
         int videoFramerate;
         int audioSampleRate;
         int audioChannelCount;
-        int videoBitrate;
         float frameDuration;
 
         ComicFilter comicFilter;
@@ -166,6 +176,10 @@ namespace NatCorderWithOpenCVForUnityExample
         string settingInfoJPG = "";
         Scalar textColor = new Scalar(255, 255, 255, 255);
         Point textPos = new Point();
+
+#if !OPENCV_USE_UNSAFE_CODE
+        byte[] pixelBuffer;
+#endif
 
         /// <summary>
         /// The FPS monitor.
@@ -192,18 +206,18 @@ namespace NatCorderWithOpenCVForUnityExample
 #endif
             webCamTextureToMatHelper.Initialize();
 
-            microphoneSource = gameObject.GetComponent<AudioSource>();
 
-            videoPlayer = gameObject.GetComponent<VideoPlayer>();
+            microphoneSource = gameObject.AddComponent<AudioSource>();
+            videoPlayer = gameObject.AddComponent<VideoPlayer>();
+
 
             comicFilter = new ComicFilter();
 
             // Update GUI state
             requestedResolutionDropdown.value = (int)requestedResolution;
             containerDropdown.value = (int)container;
-            string[] enumNames = System.Enum.GetNames(typeof(MicrophoneFrequencyPreset));
-            int index = Array.IndexOf(enumNames, microphoneFrequency.ToString());
-            microphoneFrequencyDropdown.value = index;
+            videoBitRateDropdown.value = Array.IndexOf(System.Enum.GetNames(typeof(VideoBitRatePreset)), videoBitRate.ToString());
+            audioBitRateDropdown.value = Array.IndexOf(System.Enum.GetNames(typeof(AudioBitRatePreset)), audioBitRate.ToString());
             applyComicFilterToggle.isOn = applyComicFilter;
             recordMicrophoneAudioToggle.isOn = recordMicrophoneAudio;
         }
@@ -218,6 +232,10 @@ namespace NatCorderWithOpenCVForUnityExample
             Mat webCamTextureMat = webCamTextureToMatHelper.GetMat();
 
             texture = new Texture2D(webCamTextureMat.cols(), webCamTextureMat.rows(), TextureFormat.RGBA32, false);
+
+#if !OPENCV_USE_UNSAFE_CODE
+            pixelBuffer = new byte[webCamTextureMat.cols() * webCamTextureMat.rows() * 4];
+#endif
 
             gameObject.GetComponent<Renderer>().material.mainTexture = texture;
 
@@ -314,13 +332,22 @@ namespace NatCorderWithOpenCVForUnityExample
                     }
                 }
 
-                // Restore the coordinate system of the image by OpenCV's Flip function.
+                // Upload the image Mat data to the Texture2D.
+                // (The internal processing of the fastMatToTexture method restore the image Mat data to Unity coordinate system)
                 Utils.fastMatToTexture2D(rgbaMat, texture);
 
                 // Record frames
                 if (videoRecorder != null && (isVideoRecording && !isFinishWriting) && frameCount++ % recordEveryNthFrame == 0)
                 {
-                    videoRecorder.CommitFrame((IntPtr)rgbaMat.dataAddr(), recordingClock.timestamp);
+#if !OPENCV_USE_UNSAFE_CODE
+                    MatUtils.copyFromMat(rgbaMat, pixelBuffer);
+                    videoRecorder.CommitFrame(pixelBuffer, recordingClock.timestamp);
+#else
+                    unsafe
+                    {
+                        videoRecorder.CommitFrame((void*)rgbaMat.dataAddr(), recordingClock.timestamp);
+                    }
+#endif
                 }
             }
 
@@ -346,7 +373,6 @@ namespace NatCorderWithOpenCVForUnityExample
             videoFramerate = 30;
             audioSampleRate = recordMicrophoneAudio ? AudioSettings.outputSampleRate : 0;
             audioChannelCount = recordMicrophoneAudio ? (int)AudioSettings.speakerMode : 0;
-            videoBitrate = (int)(960 * 540 * 11.4f);
             frameDuration = 0.1f;
 
             // Create video recorder
@@ -358,7 +384,9 @@ namespace NatCorderWithOpenCVForUnityExample
                     recordingHeight,
                     videoFramerate,
                     audioSampleRate,
-                    audioChannelCount
+                    audioChannelCount,
+                    (int)videoBitRate,
+                    audioBitRate: (int)audioBitRate
                 );
                 recordEveryNthFrame = 1;
             }
@@ -369,7 +397,9 @@ namespace NatCorderWithOpenCVForUnityExample
                     recordingHeight,
                     videoFramerate,
                     audioSampleRate,
-                    audioChannelCount
+                    audioChannelCount,
+                    (int)videoBitRate,
+                    audioBitRate: (int)audioBitRate
                 );
                 recordEveryNthFrame = 1;
             }
@@ -409,6 +439,8 @@ namespace NatCorderWithOpenCVForUnityExample
                 await StartMicrophone();
                 audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
             }
+            // Unmute microphone
+            microphoneSource.mute = audioInput == null;
 
             // Start countdown
             cancellationTokenSource = new CancellationTokenSource();
@@ -457,11 +489,15 @@ namespace NatCorderWithOpenCVForUnityExample
             if (!isVideoRecording || isFinishWriting)
                 return;
 
+            // Mute microphone
+            microphoneSource.mute = true;
+
             // Stop the microphone if we used it for recording
             if (recordMicrophoneAudio)
             {
                 StopMicrophone();
                 audioInput.Dispose();
+                audioInput = null;
             }
 
             if (fpsMonitor != null) fpsMonitor.consoleText = "FinishWriting...";
@@ -493,7 +529,7 @@ namespace NatCorderWithOpenCVForUnityExample
         private Task<bool> StartMicrophone()
         {
             var task = new TaskCompletionSource<bool>();
-            StartCoroutine(CreateMicrophone(granted =>
+            StartCoroutine(CreateMicrophoneClip(granted =>
             {
                 microphoneSource.Play();
                 task.SetResult(granted);
@@ -502,13 +538,14 @@ namespace NatCorderWithOpenCVForUnityExample
             return task.Task;
         }
 
-        private IEnumerator CreateMicrophone(Action<bool> completionHandler)
+        private IEnumerator CreateMicrophoneClip(Action<bool> completionHandler)
         {
             // Create a microphone clip
+            microphoneSource.mute =
             microphoneSource.loop = true;
             microphoneSource.bypassEffects =
             microphoneSource.bypassListenerEffects = false;
-            microphoneSource.clip = Microphone.Start(null, true, MAX_RECORDING_TIME, (int)microphoneFrequency);
+            microphoneSource.clip = Microphone.Start(null, true, 1, AudioSettings.outputSampleRate);
             yield return new WaitUntil(() => Microphone.GetPosition(null) > 0);
             completionHandler(true);
         }
@@ -546,6 +583,9 @@ namespace NatCorderWithOpenCVForUnityExample
             videoPlayer.renderMode = VideoRenderMode.APIOnly;
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = false;
+
+            // Unmute microphone
+            microphoneSource.mute = false;
             microphoneSource.playOnAwake = false;
 
             videoPlayer.source = VideoSource.Url;
@@ -593,6 +633,9 @@ namespace NatCorderWithOpenCVForUnityExample
             if (videoPlayer.isPlaying)
                 videoPlayer.Stop();
 
+            // Mute microphone
+            microphoneSource.mute = true;
+
             isVideoPlaying = false;
 
             if (this != null && isActiveAndEnabled)
@@ -607,7 +650,8 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             requestedResolutionDropdown.interactable = true;
             containerDropdown.interactable = true;
-            microphoneFrequencyDropdown.interactable = true;
+            videoBitRateDropdown.interactable = true;
+            audioBitRateDropdown.interactable = true;
             applyComicFilterToggle.interactable = true;
             recordMicrophoneAudioToggle.interactable = true;
             recordVideoButton.interactable = true;
@@ -622,7 +666,8 @@ namespace NatCorderWithOpenCVForUnityExample
         {
             requestedResolutionDropdown.interactable = false;
             containerDropdown.interactable = false;
-            microphoneFrequencyDropdown.interactable = false;
+            videoBitRateDropdown.interactable = false;
+            audioBitRateDropdown.interactable = false;
             applyComicFilterToggle.interactable = false;
             recordMicrophoneAudioToggle.interactable = false;
             recordVideoButton.interactable = false;
@@ -636,7 +681,7 @@ namespace NatCorderWithOpenCVForUnityExample
         private void CreateSettingInfo()
         {
             settingInfo1 = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FPS:" + videoFramerate;
-            settingInfo2 = "- ASR:" + audioSampleRate + " ACh:" + audioChannelCount + " VBR:" + videoBitrate + " MicFreq:" + (int)microphoneFrequency;
+            settingInfo2 = "- ASR:" + audioSampleRate + " ACh:" + audioChannelCount + " VBR:" + (int)videoBitRate + " ABR:" + (int)audioBitRate;
             settingInfoGIF = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight + " FrameDur:" + frameDuration;
             settingInfoJPG = "- [" + container + "] SIZE:" + recordingWidth + "x" + recordingHeight;
         }
@@ -717,6 +762,9 @@ namespace NatCorderWithOpenCVForUnityExample
             if ((ContainerPreset)(result) == ContainerPreset.JPG)
             {
                 containerDropdown.value = (int)container;
+
+                if (fpsMonitor != null) fpsMonitor.Toast("JPG format is not supported on this platform");
+
                 return;
             }
 #endif
@@ -728,16 +776,30 @@ namespace NatCorderWithOpenCVForUnityExample
         }
 
         /// <summary>
-        /// Raises the microphone frequency dropdown value changed event.
+        /// Raises the video bitrate dropdown value changed event.
         /// </summary>
-        public void OnMicrophoneFrequencyDropdownValueChanged(int result)
+        public void OnVideoBitRateDropdownValueChanged(int result)
         {
-            string[] enumNames = Enum.GetNames(typeof(MicrophoneFrequencyPreset));
-            int value = (int)System.Enum.Parse(typeof(MicrophoneFrequencyPreset), enumNames[result], true);
+            string[] enumNames = Enum.GetNames(typeof(VideoBitRatePreset));
+            int value = (int)System.Enum.Parse(typeof(VideoBitRatePreset), enumNames[result], true);
 
-            if ((int)microphoneFrequency != value)
+            if ((int)videoBitRate != value)
             {
-                microphoneFrequency = (MicrophoneFrequencyPreset)value;
+                videoBitRate = (VideoBitRatePreset)value;
+            }
+        }
+
+        /// <summary>
+        /// Raises the audio bitrate dropdown value changed event.
+        /// </summary>
+        public void OnAudioBitRateDropdownValueChanged(int result)
+        {
+            string[] enumNames = Enum.GetNames(typeof(AudioBitRatePreset));
+            int value = (int)System.Enum.Parse(typeof(AudioBitRatePreset), enumNames[result], true);
+
+            if ((int)audioBitRate != value)
+            {
+                audioBitRate = (AudioBitRatePreset)value;
             }
         }
 
@@ -796,11 +858,13 @@ namespace NatCorderWithOpenCVForUnityExample
             if (System.IO.Path.GetExtension(videoPath) == ".gif")
             {
                 Debug.LogWarning("GIF format video playback is not supported.");
+                if (fpsMonitor != null) fpsMonitor.Toast("GIF format video playback is not supported.");
                 return;
             }
             if (System.IO.Path.GetExtension(videoPath) == "")
             {
-                Debug.LogWarning("JPG format video playback is not supported.");
+                Debug.LogWarning("JPG format images playback is not supported.");
+                if (fpsMonitor != null) fpsMonitor.Toast("JPG format images playback is not supported.");
                 return;
             }
 
@@ -823,10 +887,24 @@ namespace NatCorderWithOpenCVForUnityExample
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.OpenWithDefaultApp(videoPath);
 #elif UNITY_ANDROID || UNITY_IOS
+            if (System.IO.Path.GetExtension(videoPath) == ".gif")
+            {
+                Debug.LogWarning("GIF format video full screen playback is not supported.");
+                if (fpsMonitor != null) fpsMonitor.Toast("GIF format video full screen playback is not supported.");
+                return;
+            }
+            if (System.IO.Path.GetExtension(videoPath) == "")
+            {
+                Debug.LogWarning("JPG format images full screen playback is not supported.");
+                if (fpsMonitor != null) fpsMonitor.Toast("JPG format images full screen playback is not supported.");
+                return;
+            }
+
             var prefix = Application.platform == RuntimePlatform.IPhonePlayer ? "file://" : "";
             Handheld.PlayFullScreenMovie(prefix + videoPath);
 #else
             Debug.LogWarning("Full-screen video playback is not supported on this platform.");
+            if (fpsMonitor != null) fpsMonitor.Toast("Full-screen video playback is not supported on this platform.");
 #endif
         }
 
@@ -845,10 +923,10 @@ namespace NatCorderWithOpenCVForUnityExample
 #if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
             try
             {
-                var success = await new SharePayload()
-                    .AddText("User shared video! [NatCorderWithOpenCVForUnity Example](" + NatCorderWithOpenCVForUnityExample.GetNatCorderVersion() + ")")
-                    .AddMedia(videoPath)
-                    .Commit();
+                SharePayload payload = new SharePayload();
+                payload.AddText("User shared video! [NatCorderWithOpenCVForUnity Example](" + NatCorderWithOpenCVForUnityExample.GetNatCorderVersion() + ")");
+                payload.AddMedia(videoPath);
+                var success = await payload.Commit();
 
                 mes = $"Successfully shared items: {success}";
             }
@@ -857,17 +935,12 @@ namespace NatCorderWithOpenCVForUnityExample
                 mes = e.Message;
             }
 #else
-            mes = "NatShare Error: SharePayload is not supported on this platform";
+            mes = "NatShare Error: SharePayload is not supported on this platform.";
+            await Task.Delay(100);
 #endif
 
             Debug.Log(mes);
-
-            if (fpsMonitor != null)
-            {
-                fpsMonitor.consoleText = mes;
-                await Task.Delay(2000);
-                fpsMonitor.consoleText = "";
-            }
+            if (fpsMonitor != null) fpsMonitor.Toast(mes);
         }
 
         /// <summary>
@@ -885,9 +958,9 @@ namespace NatCorderWithOpenCVForUnityExample
 #if (UNITY_IOS || UNITY_ANDROID) && !UNITY_EDITOR
             try
             {
-                var success = await new SavePayload("NatCorderWithOpenCVForUnityExample")
-                    .AddMedia(videoPath)
-                    .Commit();
+                SavePayload payload = new SavePayload("NatCorderWithOpenCVForUnityExample");
+                payload.AddMedia(videoPath);
+                var success = await payload.Commit();
 
                 mes = $"Successfully saved items: {success}";
             }
@@ -896,17 +969,12 @@ namespace NatCorderWithOpenCVForUnityExample
                 mes = e.Message;
             }
 #else
-            mes = "NatShare Error: SavePayload is not supported on this platform";
+            mes = "NatShare Error: SavePayload is not supported on this platform.";
+            await Task.Delay(100);
 #endif
 
             Debug.Log(mes);
-
-            if (fpsMonitor != null)
-            {
-                fpsMonitor.consoleText = mes;
-                await Task.Delay(2000);
-                fpsMonitor.consoleText = "";
-            }
+            if (fpsMonitor != null) fpsMonitor.Toast(mes);
         }
 
         public enum ResolutionPreset
@@ -952,13 +1020,24 @@ namespace NatCorderWithOpenCVForUnityExample
             JPG,
         }
 
-        public enum MicrophoneFrequencyPreset
+        public enum VideoBitRatePreset
         {
-            _16000 = 16000,
-            _24000 = 24000,
-            _32000 = 32000,
-            _44100 = 44100,
-            _48000 = 48000,
+            _1Mbps = 1000000,
+            _3Mbps = 3000000,
+            _5Mbps = 5000000,
+            _8Mbps = 8000000,
+            _10Mbps = 10000000,
+            _15Mbps = 15000000,
+        }
+
+        public enum AudioBitRatePreset
+        {
+            _24Kbps = 24000,
+            _48Kbps = 48000,
+            _64Kbps = 64000,
+            _96Kbps = 96000,
+            _128Kbps = 128000,
+            _192Kbps = 192000,
         }
     }
 }
