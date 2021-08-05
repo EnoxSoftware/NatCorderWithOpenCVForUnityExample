@@ -5,12 +5,12 @@
 
 
 ## Environment
-* Anddroid (Pixel) / iOS (iPhoneSE)
+* Anddroid (Pixel) / iOS (iPhoneSE2)
 * Unity >= 2019.4.26f1+
 * Scripting backend MONO / IL2CPP
-* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.8.0+ 
+* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.8.1+ 
 * [NatShare - Mobile Sharing API](https://github.com/natsuite/NatShare) 1.2.5+ 
-* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.4+ 
+* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.5+ 
 
 
 ## Demo
