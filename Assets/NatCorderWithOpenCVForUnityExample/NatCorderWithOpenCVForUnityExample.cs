@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -9,7 +9,7 @@ namespace NatCorderWithOpenCVForUnityExample
     {
         public static string GetNatCorderVersion()
         {
-            return "1.8.1";
+            return "1.8.2";
         }
 
         public Text exampleTitle;

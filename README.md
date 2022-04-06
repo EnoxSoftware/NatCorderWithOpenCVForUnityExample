@@ -5,12 +5,12 @@
 
 
 ## Environment
-* Anddroid (Pixel) / iOS (iPhoneSE2)
-* Unity >= 2019.4.26f1+
+* Anddroid (Pixel 3a) / iOS (iPhoneSE2)
+* Unity >= 2020.3.31f1+
 * Scripting backend MONO / IL2CPP
-* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.8.1+ 
-* [NatShare - Mobile Sharing API](https://github.com/natsuite/NatShare) 1.2.5+ 
-* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.5+ 
+* [NatCorder - Video Recording API](https://assetstore.unity.com/packages/tools/integration/natcorder-video-recording-api-102645?aid=1011l4ehR) 1.8.2+ 
+* [NatShare - Mobile Sharing API](https://github.com/natsuite/NatShare) 1.2.6+ 
+* [OpenCV for Unity](https://assetstore.unity.com/packages/tools/integration/opencv-for-unity-21088?aid=1011l4ehR) 2.4.7+ 
 
 
 ## Demo
@@ -24,10 +24,14 @@
 ## Setup
 1. Download the latest release unitypackage. [NatCorderWithOpenCVForUnityExample.unitypackage](https://github.com/EnoxSoftware/NatCorderWithOpenCVForUnityExample/releases)
 1. Create a new project. (NatCorderWithOpenCVForUnityExample)
+    * Enable "Allow 'unsafe' Code" option in the "Player Settings > Other Settings" Inspector.
 1. Import NatCorder.
 1. Import NatShare. (NatShare should be installed using the Unity Package Manager. See [README](https://github.com/natsuite/NatShare))
 1. Import OpenCVForUnity.
     * Setup the OpenCVForUnity. (Tools > OpenCV for Unity > Set Plugin Import Settings)
+    * Select MenuItem[Tools/OpenCV for Unity/Use Unsafe Code]. 
+      ![Use_UnsafeCode.PNG](Use_UnsafeCode.png)
+      ![AllowUnsafeCode.PNG](AllowUnsafeCode.png)
 1. Import the NatCorderWithOpenCVForUnityExample.unitypackage.
 1. Change the "Minimum API Level" to 24 or higher in the "Player Settings (Androd)" Inspector.
 1. Change the "Target minimum iOS Version" to 13 or higher in the "Player Settings (iOS)" Inspector.
