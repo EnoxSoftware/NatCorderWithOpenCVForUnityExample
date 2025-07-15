@@ -1,3 +1,8 @@
+# This example project has been deprecated.
+**The “NatCorder” and “NatShare” assets that the integration example depends on have been deprecated in the Unity Asset Store. These features appear to have been merged and evolved into a new asset called VideoKit (https://www.videokit.ai/).**
+
+---
+
 # NatCorder With OpenCVForUnity Example
 
 * An example of a video recording app by using NatCorder and OpenCVForUnity.
